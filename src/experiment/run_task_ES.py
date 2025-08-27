@@ -9,6 +9,8 @@
 #
 # OUTPUT:
 # - A log file with the task results.
+
+# Conda environment: psychopy_env
 ###
 
 #!/usr/bin/env python3
@@ -20,3 +22,4 @@ import time
 import numpy as np
 import logging
 from psychopy import visual, core, event, logging
+# %%
