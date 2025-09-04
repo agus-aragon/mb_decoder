@@ -1,6 +1,8 @@
 
 import logging 
 import random
+import os
+import csv
 from psychopy import visual, core, event, sound, parallel
 
 class experience_sampling:
@@ -40,12 +42,20 @@ class experience_sampling:
 
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
+
+        fh = logging.FileHandler(self.outfile)
+        fh.setLevel(logging.INFO)
+
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         ch.setFormatter(formatter)
+        fh.setFormatter(formatter)
 
         logger.addHandler(ch)
+        logger.addHandler(fh)
 
         logger.info(f'Logger configured for subject {self.subj}')
+        logger.info(f'Log file: {os.path.abspath(self.outfile)}')
+
         return logger
     
     def draw_cross(self):
@@ -288,7 +298,7 @@ class experience_sampling:
         for i, time in enumerate(trigger_times):
             self.logger.info(f"Trigger {i+1}: {time:.6f} seconds")
         
-        return experiment_start_time, trigger_time
+        return experiment_start_time, trigger_times
 
     def run_trial(self, trial_num):
         """Run a single trial - handles all trial-specific operations."""
@@ -322,9 +332,6 @@ class experience_sampling:
             'probe_time': probe_time
         }
 
-    def save_log(self):
-        #TODO: save log
-
     def run_experiment(self):
         """Main experiment loop - coordinates the overall flow."""
         # Wait for scanner triggers
@@ -351,7 +358,7 @@ class experience_sampling:
 if __name__ == "__main__":
     params = {
         'subj': '001',
-        'n_trials': 5,
+        'n_trials': 3,
         'interval': 5,  # seconds between trials
         'jittering':2,
         'states': ['Thought', 'Mind Blanking', 'Asleep'],
