@@ -20,7 +20,7 @@ class experience_sampling:
         self.response_buttons = params['response_buttons']
         self.outfile          = f'sub_{self.subj}_task-ES.log'
         self.jittering        = params['jittering']
-
+        self._volume_count    = 0 
         self.win = visual.Window(size  = (1270,720), 
                                  units = 'height', 
                                  color = 'white')
@@ -70,7 +70,7 @@ class experience_sampling:
         return fixation_cross
     
     def play_probe(self, trial_num):
-        #TODO: add auditory stimuus
+        #TODO: add auditory stimulus !!!!!!
         """ Visual and auditory probe"""
         visual_probe = visual.TextStim(self.win,
                                     text='!',
@@ -81,28 +81,19 @@ class experience_sampling:
         # auditory_probe = sound.Sound(value=1000,
         #                              secs=1,
         #                              volume=0.7)
-
         visual_probe.draw()
         self.win.flip()
         probe_time = self.clock.getTime()
 
-        if self.parallel:
-            self.win.callOnFlip(lambda: self.port.setData(0x16))
-
         # flip_time = self.win.flip()  # Returns exact time of visual onset
         self.logger.info(f"Probe {trial_num+1} at: {probe_time}")
         
-        if self.parallel:
-            core.wait(0.01)
-            self.port.setData(0)
-
-        core.wait(1.0)
-
         return probe_time
 
     def get_response(self, trial_num, probe_time):
         """Display response options and collect participant response."""
         self.win.flip()
+
         prompt_txt = ''
         for i, state in enumerate(self.states, 1):
             prompt_txt += f"{state}\n\n" 
@@ -114,15 +105,9 @@ class experience_sampling:
     
         prompt.draw()
         self.win.flip()
-        # prompt_onset = self.clock.getTime()
+        prompt_onset = self.clock.getTime()
 
-        event.clearEvents()
         response = None
-
-        if self.parallel:
-            self.port.setData(0x20) 
-            core.wait(0.01)
-            self.port.setData(0)
 
         while response not in self.response_buttons:
             keys = event.getKeys(keyList=self.response_buttons + ['escape'], timeStamped=self.clock)
@@ -134,7 +119,7 @@ class experience_sampling:
                 elif key_pressed:
                     response = key_pressed
                     response_time = key_time
-                    rt = response_time - probe_time
+                    rt = response_time - prompt_onset
                     state_index = int(response) - 1 
                     state_name = self.states[state_index]
                     self.logger.info(f"Trial {trial_num+1}: Response '{state_name}', (key {response}), RT: {rt:.3f} seconds, Raw time: {response_time:.3f}")
@@ -267,30 +252,18 @@ class experience_sampling:
         self.logger.info(f"Waiting for {n_triggers} scanner triggers ...")
         trigger_times = []
 
-        if self.parallel:
-            self.logger.info("Waiting for parallel port triggers (0xFF)...")
-            for i in range(n_triggers):
-                self.logger.info(f"Waiting for trigger {i+1}/{n_triggers}...")
-                while True:
-                    port_data = self.port.readData()
-                    if port_data == 0xFF:
-                        trigger_time = self.clock.getTime()
-                        trigger_times.append(trigger_time)
-                        self.logger.info(f"Trigger {i+1} received at {trigger_time:.3f} seconds")
-                        core.wait(0.1)
-                        break
-                    core.wait(0.0001)
-        else:
-            self.logger.info(f"Press 't' {n_triggers} times...")
-            for i in range (n_triggers):
-                self.logger.info(f"Waiting for trigger {i+1}/{n_triggers}...")
-                keys = event.waitKeys(keyList=['t', 'escape'])
-                if 'escape' in keys:
-                    self.win.close()
-                    core.quit()
-                trigger_time = self.clock.getTime()
-                trigger_times.append(trigger_time)
-                self.logger.info(f"Trigger {i+1} received at {trigger_time:.6f} seconds")
+        self.logger.info(f"Press 't' {n_triggers} times...")
+        for i in range (n_triggers):
+            self.logger.info(f"Waiting for trigger {i+1}/{n_triggers}...")
+            keys = event.waitKeys(keyList=['t', 'escape'], timeStamped=self.clock, clearEvents=True)
+            if any(x[0] == 'escape' for x in keys):
+                self.win.close()
+                core.quit()
+            trigger_time = keys[0][1]
+            trigger_times.append(trigger_time)
+
+            self.logger.info(f"[[{trigger_time}]] Volume {self._volume_count} received at {trigger_time:.6f} seconds")
+            self._volume_count += 1
         
         experiment_start_time = trigger_times[-1]
         self.logger.info(f"Experiment will start at last trigger: {experiment_start_time:.6f}")
@@ -302,12 +275,13 @@ class experience_sampling:
 
     def run_trial(self, trial_num):
         """Run a single trial - handles all trial-specific operations."""
-        trial_start = self.clock.getTime()
         self.logger.info(f"Trial {trial_num+1} started")
         
         # Show fixation cross for jittered interval
         self.cross.draw()
         self.win.flip()
+        trial_start = self.clock.getTime()
+
         jitter = random.uniform(self.interval-self.jittering, self.interval+self.jittering)
         core.wait(jitter)
         
@@ -322,7 +296,7 @@ class experience_sampling:
         if state == "Mind Blanking":
             arousal, arousal_rt = self.get_arousal_rating(trial_num)
         
-        # Return trial data (you might want to save this to file)
+        # Return trial data
         return {
             'trial_num': trial_num + 1,
             'state': state,
@@ -349,6 +323,8 @@ class experience_sampling:
         self.logger.info("Experiment completed successfully!")
         self.win.close()
 
+#TODO: end of experiment, add message 
+
 ################################
 ################################
 # Example usage:
@@ -359,12 +335,13 @@ if __name__ == "__main__":
     params = {
         'subj': '001',
         'n_trials': 3,
-        'interval': 5,  # seconds between trials
-        'jittering':2,
+        'interval': 5,
+        'jittering': 2,
         'states': ['Thought', 'Mind Blanking', 'Asleep'],
         'parallel': False,
         'response_buttons': ['1', '2', '3']
     }
-    
+
     experiment = experience_sampling(params)
     experiment.run_experiment()
+
