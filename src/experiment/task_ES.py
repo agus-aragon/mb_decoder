@@ -456,6 +456,5 @@ if __name__ == "__main__":
         "parallel": False,
         "response_buttons": ["b", "y", "g"],
     }
-x
     experiment = experience_sampling(params)
     experiment.run_experiment()
