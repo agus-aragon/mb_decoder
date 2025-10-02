@@ -42,6 +42,7 @@ class experience_sampling:
         self.logger = self.configure_logger()
         self.cross = self.draw_cross()
 
+
         # parallel settings
         if self.parallel:
             self.port = parallel.ParallelPort(address=0x0378)
@@ -91,9 +92,10 @@ class experience_sampling:
             self.win, text="!", color="black", height=0.4, bold=True
         )
 
-        # auditory_probe = sound.Sound(value=1000,
-        #                              secs=1,
-        #                              volume=0.7)
+        auditory_probe = sound.Sound(value=1000,
+                                     secs=1,
+                                     volume=0.7)
+        auditory_probe.play()
         visual_probe.draw()
         self.win.flip()
         probe_time = float(self.clock.getTime())
@@ -158,11 +160,11 @@ class experience_sampling:
         response, response_time = keys[0]
         rt = response_time - prompt_onset
 
-        if response == "1":
+        if response == "b":
             state_name = "Thought"
-        elif response == "2":
+        elif response == "y":
             state_name = "Mind Blanking"
-        elif response == "3":
+        elif response == "g":
             state_name = "Sleep"
 
         self._events.append((response_time, "RESPONSE", trial_num, response))
@@ -446,14 +448,14 @@ class experience_sampling:
 
 if __name__ == "__main__":
     params = {
-        "subj": "015",
+        "subj": "001",
         "n_trials": 3,
         "interval": 2,
         "jittering": 1,
         "states": ["Thought", "Mind Blanking", "Asleep"],
         "parallel": False,
-        "response_buttons": ["1", "2", "3"],
+        "response_buttons": ["b", "y", "g"],
     }
-
+x
     experiment = experience_sampling(params)
     experiment.run_experiment()

@@ -26,7 +26,7 @@ from task_ES import experience_sampling
 # %%
 if __name__ == "__main__":
     params = {
-        'subj': '001',
+        'subj': '006',
         'n_trials': 3,
         'interval': 5,  # seconds between trials
         'jittering':2,
