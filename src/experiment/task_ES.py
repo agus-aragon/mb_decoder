@@ -23,7 +23,7 @@ class experience_sampling:
         self.interval = params["interval"]
         self.states = params["states"]
         self.parallel = params["parallel"]
-        self.task_length = int((self.n_trials * self.interval) / 60)
+        self.duration = params["duration"]
         self.response_buttons = params["response_buttons"]
         self.exp_dir = Path(__file__).parent / f"sub-{self.subj}"
         if self.exp_dir.exists():
@@ -42,13 +42,38 @@ class experience_sampling:
         self.logger = self.configure_logger()
         self.cross = self.draw_cross()
 
-
         # parallel settings
         if self.parallel:
             self.port = parallel.ParallelPort(address=0x0378)
             self.port.setData(0)
 
         print(f"Experiment created for subject {self.subj}")
+
+    def _jittering(self):
+        """Return a random jittering time."""
+        # Calculate total extra time to distribute
+        total_seconds = self.duration * 60
+        base_time = self.n_trials * self.interval
+        extra_time = total_seconds - base_time
+
+        if extra_time < 0:
+            raise ValueError("Duration too short for number of trials and interval")
+
+        # Generate jitters around zero
+        jitter_range = self.jittering
+        jitter_values = [
+            random.uniform(-jitter_range, jitter_range) for _ in range(self.n_trials)
+        ]
+
+        # Adjust so they sum to extra_time
+        current_sum = sum(jitter_values)
+        adjustment = (extra_time - current_sum) / self.n_trials
+        jitter_values = [j + adjustment for j in jitter_values]
+
+        random.shuffle(jitter_values)
+        self.jittering = jitter_values
+
+        return self.jittering
 
     def configure_logger(self):
         """Logger that prints messages to the console."""
@@ -92,10 +117,10 @@ class experience_sampling:
             self.win, text="!", color="black", height=0.4, bold=True
         )
 
-        auditory_probe = sound.Sound(value=1000,
-                                     secs=1,
-                                     volume=0.7)
-        auditory_probe.play()
+        # auditory_probe = sound.Sound(value=1000,
+        #                              secs=1,
+        #                              volume=0.7)
+        # auditory_probe.play()
         visual_probe.draw()
         self.win.flip()
         probe_time = float(self.clock.getTime())
@@ -139,11 +164,17 @@ class experience_sampling:
             self.win,
             text=prompt_txt,
             color="black",
-            height=0.1,
-            wrapWidth=1.8,
-            pos=(0, -0.1)
+            height=0.09,
+            wrapWidth=1.5,
+            pos=(0, 0.05),
         )
-
+        image = visual.ImageStim(
+            win=self.win,
+            image="/Users/agusaragon/dev/mb_decoder/src/experiment/joystick_mri.png", 
+            pos=(-0.65, 0.20),  
+            size=(0.6, 0.6),
+        )
+        image.draw()
         prompt.draw()
         self.clear_key_buffer()
 
@@ -175,7 +206,7 @@ class experience_sampling:
         )
         feedback_text = f"You chose: {state_name}"
         feedback = visual.TextStim(
-            self.win, text=feedback_text, color="black", height=0.1
+            self.win, text=feedback_text, color="black", height=0.08, pos=(0, 0.30) 
         )
         feedback.draw()
         self.win.flip()
@@ -185,71 +216,65 @@ class experience_sampling:
 
     def get_arousal_rating(self, trial_num):
         """Display arousal rating scale with continuous slider."""
-
-        # Create scale elements
+        
+        # Question on the right side
         question = visual.TextStim(
             self.win,
             text="How awake do you feel right now?",
             color="black",
-            height=0.07,
-            pos=(0, 0.3),
+            height=0.05,
+            pos=(0.00, 0.43), 
         )
-
-        left_label = visual.TextStim(
-            self.win, text="Very sleepy", color="black", height=0.05, pos=(-0.4, 0.15)
+        
+        # Labels at top and bottom of slider
+        top_label = visual.TextStim(
+            self.win, text="Very alert", color="black", height=0.04, pos=(0.0, 0.35)
         )
-
-        right_label = visual.TextStim(
-            self.win, text="Very alert", color="black", height=0.05, pos=(0.4, 0.15)
+        
+        bottom_label = visual.TextStim(
+            self.win, text="Very sleepy", color="black", height=0.04, pos=(0.00, -0.05)
         )
-
-        instruction = visual.TextStim(
-            self.win,
-            text="Use index and middle fingers to move, then press with the ring finger to confirm",
-            color="black",
-            height=0.04,
-            pos=(0, -0.3),
-        )
-
-        # Create slider
+        
+        # Vertical slider line - positioned higher and to the left
         slider_line = visual.Line(
-            self.win, start=(-0.4, 0), end=(0.4, 0), lineColor="black", lineWidth=2
+            self.win, start=(0, 0), end=(0, 0.3), lineColor="black", lineWidth=3
         )
-
+        
         slider_marker = visual.Circle(
-            self.win, radius=0.02, fillColor="red", lineColor="red", pos=(0, 0)
+            self.win, radius=0.015, fillColor="black", lineColor="black", pos=(0, 0)
         )
-
+        image = visual.ImageStim(
+            win=self.win,
+            image="/Users/agusaragon/dev/mb_decoder/src/experiment/joystick_mri_arousal.png", 
+            pos=(-0.65, 0.20),  
+            size=(0.6, 0.6),
+        )
         self.clear_key_buffer()
-
-        # if self.parallel:
-        #     self.port.setData(0x40)
-        #     core.wait(0.01)
-        #     self.port.setData(0)
-
+        
         # Initialize rating and timing
         rating = 50
         confirmed = False
         prompt_onset = None
+        
         while not confirmed:
-            # Update slider position
-            x_pos = -0.4 + (rating / 100) * 0.8
-            slider_marker.pos = (x_pos, 0)
-
+            # Update slider position - MUST match slider_line range
+            y_pos = 0 + (rating / 100) * 0.3  # From 0 to 0.3
+            slider_marker.pos = (0, y_pos)
+            
             # Draw everything
+            image.draw()
+
             question.draw()
-            left_label.draw()
-            right_label.draw()
-            instruction.draw()
+            top_label.draw()
+            bottom_label.draw()
             slider_line.draw()
             slider_marker.draw()
-
-            # Show current value
+            # Show current value next to slider
             value_text = visual.TextStim(
-                self.win, text=f"{rating}%", color="black", height=0.05, pos=(0, -0.1)
+                self.win, text=f"{rating}%", color="black", height=0.04, pos=(0.08, y_pos)
             )
             value_text.draw()
-
+            
             self.win.flip()
             if prompt_onset is None:
                 prompt_onset = float(self.clock.getTime())
@@ -257,18 +282,18 @@ class experience_sampling:
                     level=EXPERIMENT,
                     msg=f"[[{prompt_onset}]] Arousal Prompt {trial_num + 1} displayed at {prompt_onset} s",
                 )
-            # Check for key presses
+            
             keys = event.waitKeys(keyList=["1", "2", "3"], timeStamped=self.clock)
-
+            
             for key, timestamp in keys:
                 if key == "1":
-                    rating = max(0, rating - 5)  # Decrease by 5%
+                    rating = max(0, rating - 5)
                     self.logger.log(
                         level=EXPERIMENT,
                         msg=f"Arousal rating {trial_num + 1}: rating decreased to {rating}",
                     )
                 elif key == "2":
-                    rating = min(100, rating + 5)  # Increase by 5%
+                    rating = min(100, rating + 5)
                     self.logger.log(
                         level=EXPERIMENT,
                         msg=f"Arousal rating {trial_num + 1}: rating increased to {rating}",
@@ -277,21 +302,17 @@ class experience_sampling:
                     confirmed = True
                     rating_time = timestamp
                     rt = rating_time - prompt_onset
+        
         self._events.append((rating_time, "RATING", rating, rt))
         self.logger.log(
             level=EXPERIMENT,
-            msg=f"[[{rating_time} AROUSAL {trial_num + 1} final rating {rating}, reaction time: {rt} s, raw time: {rating_time}s",
+            msg=f"[[{rating_time}]] AROUSAL {trial_num + 1} final rating {rating}, reaction time: {rt} s, raw time: {rating_time}s",
         )
-
-        # if self.parallel:
-        #     rating_code = 0x40 + int(rating)
-        #     self.port.setData(rating_code)
-        #     core.wait(0.001)
-        #     self.port.setData(0)
-
+        
         self.win.flip()
         core.wait(0.1)
         return rating, rt
+    
 
     def wait_scanner_trigger(self, n_triggers=5):
         """Wait for scanner trigger (e.g., '5' key press)."""
@@ -338,9 +359,7 @@ class experience_sampling:
             msg=f"[[{trial_start}]] Trial {trial_num + 1} started at {trial_start}",
         )
 
-        trial_duration = random.uniform(
-            self.interval - self.jittering, self.interval + self.jittering
-        )
+        trial_duration = self.jittering[trial_num] + self.interval
         self.logger.log(
             level=EXPERIMENT,
             msg=f"REST {trial_num + 1} duration of {trial_duration:.3f}s",
@@ -379,7 +398,7 @@ class experience_sampling:
         # Wait for scanner triggers
         self.wait_scanner_trigger(n_triggers=5)
         all_trials_data = []
-
+        self._jittering()
         # Run all trials
         for trial_num in range(self.n_trials):
             trial_data = self.run_trial(trial_num)
@@ -450,9 +469,11 @@ if __name__ == "__main__":
     params = {
         "subj": "001",
         "n_trials": 3,
-        "interval": 2,
+        "interval": 3,
         "jittering": 1,
+        "duration": 0.20,  # total duration in minutes,
         "states": ["Thought", "Mind Blanking", "Asleep"],
+        # "states": ["1. I had a thought", "2. My mind was blank", "3. I fell asleep"],
         "parallel": False,
         "response_buttons": ["b", "y", "g"],
     }
