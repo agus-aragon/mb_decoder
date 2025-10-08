@@ -3,7 +3,13 @@ import logging
 import random
 from pathlib import Path
 import shutil
-from psychopy import visual, core, event, sound, parallel
+# from psychtoolbox import audio
+# import psychtoolbox as ptb
+from psychopy import visual, core, event, parallel, sound, prefs
+# from psychopy.sound import backend_ptb
+
+prefs.hardware['audioLib'] = 'ptb'
+# prefs.hardware['audioLatencyMode'] = 2
 
 SCANNER = 15
 EXPERIMENT = 25
@@ -11,6 +17,7 @@ SCANNER_SUMMARY = 26
 logging.addLevelName(SCANNER, "SCANNER")
 logging.addLevelName(SCANNER_SUMMARY, "SCANNER_SUMMARY")
 logging.addLevelName(EXPERIMENT, "EXPERIMENT")
+picture_dir = Path(__file__).parent / "pictures"
 
 
 class experience_sampling:
@@ -26,9 +33,9 @@ class experience_sampling:
         self.duration = params["duration"]
         self.response_buttons = params["response_buttons"]
         self.exp_dir = Path(__file__).parent / f"sub-{self.subj}"
-        if self.exp_dir.exists():
-            raise ValueError("An experiment dir for this subject already exists")
-        self.exp_dir.mkdir()
+        # if self.exp_dir.exists():                                                 ############## UNCOMMENT TO AVOID OVERWRITING
+        #     raise ValueError("An experiment dir for this subject already exists") ############## UNCOMMENT TO AVOID OVERWRITING
+        self.exp_dir.mkdir(exist_ok=True)                                           ############### delete inside paratensis                                   
         self.logfile = self.exp_dir / f"sub_{self.subj}_task-ES_log.log"
         self.eventfile = self.exp_dir / f"sub_{self.subj}_task-ES_ev.yaml"
         self.expfile = self.exp_dir / f"sub_{self.subj}_task-ES_exp.yaml"
@@ -37,7 +44,7 @@ class experience_sampling:
         self._volume_count = 0
         self._events = []
 
-        self.win = visual.Window(size=(1270, 720), units="height", color="white")
+        self.win = visual.Window(size=(1010, 720), units="height", color="white")
         self.clock = core.Clock()
         self.logger = self.configure_logger()
         self.cross = self.draw_cross()
@@ -106,7 +113,7 @@ class experience_sampling:
         """Fixation cross stimulus."""
 
         fixation_cross = visual.GratingStim(
-            win=self.win, size=0.1, pos=[0, 0], sf=0, color="black", mask="cross"
+            win=self.win, size=0.1, pos=[0, 0.15], sf=0, color="black", mask="cross"
         )
         return fixation_cross
 
@@ -114,7 +121,7 @@ class experience_sampling:
         """Visual and auditory probe"""
 
         visual_probe = visual.TextStim(
-            self.win, text="!", color="black", height=0.4, bold=True
+            self.win, text="!", color="black", height=0.3, bold=True, pos=(0, 0.15)
         )
 
         # auditory_probe = sound.Sound(value=1000,
@@ -164,15 +171,15 @@ class experience_sampling:
             self.win,
             text=prompt_txt,
             color="black",
-            height=0.09,
-            wrapWidth=1.5,
+            height=0.08,
+            wrapWidth=1,
             pos=(0, 0.05),
         )
         image = visual.ImageStim(
             win=self.win,
-            image="/Users/agusaragon/dev/mb_decoder/src/experiment/joystick_mri.png", 
-            pos=(-0.65, 0.20),  
-            size=(0.6, 0.6),
+            image=picture_dir / "joystick_mri.png",
+            pos=(0.60, 0.15),
+            size=(0.65, 0.65),
         )
         image.draw()
         prompt.draw()
@@ -194,7 +201,7 @@ class experience_sampling:
         if response == "b":
             state_name = "Thought"
         elif response == "y":
-            state_name = "Mind Blanking"
+            state_name = "Blank"
         elif response == "g":
             state_name = "Sleep"
 
@@ -206,7 +213,7 @@ class experience_sampling:
         )
         feedback_text = f"You chose: {state_name}"
         feedback = visual.TextStim(
-            self.win, text=feedback_text, color="black", height=0.08, pos=(0, 0.30) 
+            self.win, text=feedback_text, color="black", height=0.08, pos=(0, 0.15)
         )
         feedback.draw()
         self.win.flip()
@@ -216,51 +223,51 @@ class experience_sampling:
 
     def get_arousal_rating(self, trial_num):
         """Display arousal rating scale with continuous slider."""
-        
+
         # Question on the right side
         question = visual.TextStim(
             self.win,
             text="How awake do you feel right now?",
             color="black",
             height=0.05,
-            pos=(0.00, 0.43), 
+            pos=(0.00, 0.43),
         )
-        
+
         # Labels at top and bottom of slider
         top_label = visual.TextStim(
             self.win, text="Very alert", color="black", height=0.04, pos=(0.0, 0.35)
         )
-        
+
         bottom_label = visual.TextStim(
             self.win, text="Very sleepy", color="black", height=0.04, pos=(0.00, -0.05)
         )
-        
+
         # Vertical slider line - positioned higher and to the left
         slider_line = visual.Line(
             self.win, start=(0, 0), end=(0, 0.3), lineColor="black", lineWidth=3
         )
-        
+
         slider_marker = visual.Circle(
             self.win, radius=0.015, fillColor="black", lineColor="black", pos=(0, 0)
         )
         image = visual.ImageStim(
             win=self.win,
-            image="/Users/agusaragon/dev/mb_decoder/src/experiment/joystick_mri_arousal.png", 
-            pos=(-0.65, 0.20),  
-            size=(0.6, 0.6),
+            image=picture_dir / "joystick_mri_arousal.png",
+            pos=(0.60, 0.15),
+            size=(0.65, 0.65),
         )
         self.clear_key_buffer()
-        
+
         # Initialize rating and timing
         rating = 50
         confirmed = False
         prompt_onset = None
-        
+
         while not confirmed:
             # Update slider position - MUST match slider_line range
             y_pos = 0 + (rating / 100) * 0.3  # From 0 to 0.3
             slider_marker.pos = (0, y_pos)
-            
+
             # Draw everything
             image.draw()
 
@@ -271,10 +278,14 @@ class experience_sampling:
             slider_marker.draw()
             # Show current value next to slider
             value_text = visual.TextStim(
-                self.win, text=f"{rating}%", color="black", height=0.04, pos=(0.08, y_pos)
+                self.win,
+                text=f"{rating}%",
+                color="black",
+                height=0.04,
+                pos=(0.08, y_pos),
             )
             value_text.draw()
-            
+
             self.win.flip()
             if prompt_onset is None:
                 prompt_onset = float(self.clock.getTime())
@@ -282,37 +293,36 @@ class experience_sampling:
                     level=EXPERIMENT,
                     msg=f"[[{prompt_onset}]] Arousal Prompt {trial_num + 1} displayed at {prompt_onset} s",
                 )
-            
-            keys = event.waitKeys(keyList=["1", "2", "3"], timeStamped=self.clock)
-            
+
+            keys = event.waitKeys(keyList=["b", "y", "g"], timeStamped=self.clock)
+
             for key, timestamp in keys:
-                if key == "1":
+                if key == "g":
                     rating = max(0, rating - 5)
                     self.logger.log(
                         level=EXPERIMENT,
                         msg=f"Arousal rating {trial_num + 1}: rating decreased to {rating}",
                     )
-                elif key == "2":
+                elif key == "b":
                     rating = min(100, rating + 5)
                     self.logger.log(
                         level=EXPERIMENT,
                         msg=f"Arousal rating {trial_num + 1}: rating increased to {rating}",
                     )
-                elif key == "3":
+                elif key == "y":
                     confirmed = True
                     rating_time = timestamp
                     rt = rating_time - prompt_onset
-        
+
         self._events.append((rating_time, "RATING", rating, rt))
         self.logger.log(
             level=EXPERIMENT,
             msg=f"[[{rating_time}]] AROUSAL {trial_num + 1} final rating {rating}, reaction time: {rt} s, raw time: {rating_time}s",
         )
-        
+
         self.win.flip()
         core.wait(0.1)
         return rating, rt
-    
 
     def wait_scanner_trigger(self, n_triggers=5):
         """Wait for scanner trigger (e.g., '5' key press)."""
@@ -374,7 +384,7 @@ class experience_sampling:
 
         # Get arousal rating only for Mind Blanking
         arousal, arousal_rt = None, None
-        if state == "Mind Blanking":
+        if state == "Blank":
             self.logger.log(
                 level=EXPERIMENT,
                 msg="Selected Mind Blanking, getting arousal rating...",
@@ -472,7 +482,7 @@ if __name__ == "__main__":
         "interval": 3,
         "jittering": 1,
         "duration": 0.20,  # total duration in minutes,
-        "states": ["Thought", "Mind Blanking", "Asleep"],
+        "states": ["Thought", "Blank", "Asleep"],
         # "states": ["1. I had a thought", "2. My mind was blank", "3. I fell asleep"],
         "parallel": False,
         "response_buttons": ["b", "y", "g"],
