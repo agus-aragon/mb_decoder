@@ -1,15 +1,16 @@
+from psychopy import prefs
+prefs.hardware["audioLib"] = "ptb"
+prefs.hardware["audioLatencyMode"] = 2
 import yaml
 import logging
 import random
 from pathlib import Path
 import shutil
-# from psychtoolbox import audio
-# import psychtoolbox as ptb
-from psychopy import visual, core, event, parallel, sound, prefs
-# from psychopy.sound import backend_ptb
-
-prefs.hardware['audioLib'] = 'ptb'
-# prefs.hardware['audioLatencyMode'] = 2
+from psychtoolbox import audio
+import psychtoolbox as ptb
+from psychopy import visual, core, event, parallel, sound
+from psychopy.sound import backend_ptb
+import time
 
 SCANNER = 15
 EXPERIMENT = 25
@@ -35,7 +36,7 @@ class experience_sampling:
         self.exp_dir = Path(__file__).parent / f"sub-{self.subj}"
         # if self.exp_dir.exists():                                                 ############## UNCOMMENT TO AVOID OVERWRITING
         #     raise ValueError("An experiment dir for this subject already exists") ############## UNCOMMENT TO AVOID OVERWRITING
-        self.exp_dir.mkdir(exist_ok=True)                                           ############### delete inside paratensis                                   
+        self.exp_dir.mkdir(exist_ok=True)  ############### delete inside paratensis
         self.logfile = self.exp_dir / f"sub_{self.subj}_task-ES_log.log"
         self.eventfile = self.exp_dir / f"sub_{self.subj}_task-ES_ev.yaml"
         self.expfile = self.exp_dir / f"sub_{self.subj}_task-ES_exp.yaml"
@@ -51,10 +52,26 @@ class experience_sampling:
 
         # parallel settings
         if self.parallel:
-            self.port = parallel.ParallelPort(address=0x0378)
+            self.port = parallel.ParallelPort(address=0xC020)
             self.port.setData(0)
 
         print(f"Experiment created for subject {self.subj}")
+
+    def initiate_eeg(self):
+        """Send TTL to mark in EEG before start of task."""
+        self.logger.info("Start EEG recording and press E after that...")
+        if self.parallel:
+            self.port.setData(0x1)  # Beginning of EEG = 1
+            core.wait(0.1)
+            self.port.setData(0)
+            core.wait(0.1)
+        keys = event.waitKeys(keyList=["e"], timeStamped=self.clock, clearEvents=True)
+        eeg_time = keys[0][1]
+        self.logger.log(
+            level=SCANNER,
+            msg=f"[[{eeg_time}]] EEG beginning mark sent at {eeg_time:.6f} s",
+        )
+        self._events.append((eeg_time, "EEG_START", -1))
 
     def _jittering(self):
         """Return a random jittering time."""
@@ -128,6 +145,9 @@ class experience_sampling:
         #                              secs=1,
         #                              volume=0.7)
         # auditory_probe.play()
+        auditory_probe = sound.backend_ptb.SoundPTB(value="C", secs=2, volume=1)
+        auditory_probe.play()
+        # time.sleep(1)
         visual_probe.draw()
         self.win.flip()
         probe_time = float(self.clock.getTime())
@@ -137,6 +157,13 @@ class experience_sampling:
             msg=f"[[{probe_time}]] PROBE {trial_num + 1} played at {probe_time}s",
         )
         core.wait(1)
+
+        if self.parallel:
+            self.port.setData(0x1)  # Probe Time = 2
+            core.wait(0.1)
+            self.port.setData(0)
+            core.wait(0.1)
+
         return probe_time
 
     def clear_key_buffer(self):
@@ -197,6 +224,12 @@ class experience_sampling:
 
         response, response_time = keys[0]
         rt = response_time - prompt_onset
+
+        if self.parallel:
+            self.port.setData(0x2)  # Response Time = 3
+            core.wait(0.1)
+            self.port.setData(0)
+            core.wait(0.1)
 
         if response == "b":
             state_name = "Thought"
@@ -314,6 +347,12 @@ class experience_sampling:
                     rating_time = timestamp
                     rt = rating_time - prompt_onset
 
+        if self.parallel:
+            self.port.setData(0x4)  # Response Time Arousal = 3
+            core.wait(0.1)
+            self.port.setData(0)
+            core.wait(0.1)
+
         self._events.append((rating_time, "RATING", rating, rt))
         self.logger.log(
             level=EXPERIMENT,
@@ -405,6 +444,8 @@ class experience_sampling:
 
     def run_experiment(self):
         """Main experiment loop - coordinates the overall flow."""
+        # Start EEG recording
+        self.initiate_eeg()
         # Wait for scanner triggers
         self.wait_scanner_trigger(n_triggers=5)
         all_trials_data = []
@@ -424,8 +465,15 @@ class experience_sampling:
 
         self.clear_key_buffer()
 
+        if self.parallel:
+            self.port.setData(0x8)  # End of EEG = 1
+            core.wait(0.1)
+            self.port.setData(0)
+            core.wait(0.1)
+
         finished = False
         self.logger.info(f"END OF TASK. Volume count: {self._volume_count}")
+
         while not finished:
             visual_probe = visual.TextStim(
                 self.win,
@@ -484,7 +532,7 @@ if __name__ == "__main__":
         "duration": 0.20,  # total duration in minutes,
         "states": ["Thought", "Blank", "Asleep"],
         # "states": ["1. I had a thought", "2. My mind was blank", "3. I fell asleep"],
-        "parallel": False,
+        "parallel": True,
         "response_buttons": ["b", "y", "g"],
     }
     experiment = experience_sampling(params)
