@@ -1,6 +1,6 @@
-from psychopy import prefs
-prefs.hardware['audioDevice'] = 'SPDIF-Out (SB Recon3D PCIe)'
-import psychtoolbox.audio
+# from psychopy import prefs
+# prefs.hardware['audioDevice'] = 'SPDIF-Out (SB Recon3D PCIe)'
+# import psychtoolbox.audio
 import yaml
 import logging
 import random
@@ -8,7 +8,7 @@ from pathlib import Path
 import shutil
 # from psychtoolbox import audio
 from psychopy import visual, core, event, parallel, sound
-from psychopy.sound import backend_ptb
+# from psychopy.sound import backend_ptb
 
 SCANNER = 15
 EXPERIMENT = 25
@@ -31,7 +31,7 @@ class experience_sampling:
         self.parallel = params["parallel"]
         self.duration = params["duration"]
         self.response_buttons = params["response_buttons"]
-        self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" / "task-ES"
+        self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" /  "task-ES"
         if self.exp_dir.exists():                                                 
             raise ValueError("An experiment dir for this subject already exists") 
         self.exp_dir.mkdir(parents=True)               
@@ -128,7 +128,7 @@ class experience_sampling:
         """Fixation cross stimulus."""
 
         fixation_cross = visual.GratingStim(
-            win=self.win, size=0.1, pos=[0, 0.10], sf=0, color="black", mask="cross"
+
         )
         return fixation_cross
 
@@ -139,10 +139,10 @@ class experience_sampling:
             self.win, text="!", color="black", height=0.4, bold=True, pos=(0, 0.10)
         )
 
-        auditory_probe = sound.backend_ptb.SoundPTB(value=1000, secs=2, volume=0.5)
+        # auditory_probe = sound.backend_ptb.SoundPTB(value=1000, secs=2, volume=0.5)
         visual_probe.draw()
         flip_time = self.win.flip()
-        auditory_probe.play(when=flip_time)
+        # auditory_probe.play(when=flip_time)
 
 
         if self.parallel:
