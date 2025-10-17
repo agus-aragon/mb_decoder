@@ -21,9 +21,8 @@ class resting_state:
         # Task parameters
         self.subj = params["subj"]
         self.parallel = params["parallel"]
-        self.duration = params["duration"]
         self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" / "rest"
-        if self.exp_dir.exists():            
+        if self.exp_dir.exists():
             raise ValueError("An experiment dir for this subject already exists")
         self.exp_dir.mkdir(parents=True)
         self.logfile = self.exp_dir / f"sub_{self.subj}_rest_log.log"
@@ -64,7 +63,7 @@ class resting_state:
 
     def configure_logger(self):
         """Logger that prints messages to the console."""
-        logger = logging.getLogger("ES_logger")
+        logger = logging.getLogger("REST_logger")
         logger.setLevel(EEG)
 
         ch = logging.StreamHandler()
@@ -99,6 +98,21 @@ class resting_state:
         self.win.flip()
         return fixation_cross
 
+    def finish_message(self):
+        """Display preparation messages before starting the ES task."""
+        # Show "Soon we start" message
+        message1 = visual.TextStim(
+            self.win,
+            text="Soon we start with the task :)",
+            color="black",
+            height=0.06,
+            wrapWidth=0.9
+        )
+        message1.draw()
+        self.win.flip()
+        return message1
+    
+
     def clear_key_buffer(self):
         # Clear buffer from response keys
         all_keys = event.getKeys(timeStamped=self.clock)
@@ -112,7 +126,6 @@ class resting_state:
                     level=SCANNER,
                     msg=f"[[{timestamp}]] Volume {self._volume_count} received at {timestamp:.6f} s",
                 )
-
 
     def wait_scanner_trigger(self, n_triggers=5):
         """Wait for scanner trigger (e.g., '5' key press)."""
@@ -138,7 +151,6 @@ class resting_state:
             )
             self._volume_count += 1
 
-
         self.experiment_start_time = trigger_times[0]
         self.logger.info(f"T0: {self.experiment_start_time:.6f}")
 
@@ -162,13 +174,14 @@ class resting_state:
                         core.wait(0.1)
                         self.port.setData(0)
                         core.wait(0.1)
-                        eeg_time_end = keys[0][1]
-                        self.logger.log(
+                    eeg_time_end = keys[0][1]
+                    self.logger.log(
                             level=EEG,
                             msg=f"[[{eeg_time_end}]] EEG end mark sent at {eeg_time_end:.6f} s",
                         )
-                        self._events.append((eeg_time_end, "EEG_END", -1))
-
+                    self._events.append((eeg_time_end, "EEG_END", -1))
+                    self.finish_message()
+                    core.wait(2)
                     self.logger.info(f"END OF REST. Volume count: {self._volume_count}")
                 elif key == "t":
                     self._events.append((timestamp, "SCANNER", self._volume_count))
@@ -202,7 +215,6 @@ class resting_state:
 # if __name__ == "__main__":
 #     params = {
 #         "subj": "001",
-#         "duration": 0.20,  # total duration in minutes,
 #         "parallel": False,
 #     }
 #     resting = resting_state(params)

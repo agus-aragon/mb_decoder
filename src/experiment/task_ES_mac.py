@@ -6,6 +6,7 @@ import logging
 import random
 from pathlib import Path
 import shutil
+
 # from psychtoolbox import audio
 from psychopy import visual, core, event, parallel, sound
 # from psychopy.sound import backend_ptb
@@ -31,10 +32,10 @@ class experience_sampling:
         self.parallel = params["parallel"]
         self.duration = params["duration"]
         self.response_buttons = params["response_buttons"]
-        self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" /  "task-ES"
-        if self.exp_dir.exists():                                                 
-            raise ValueError("An experiment dir for this subject already exists") 
-        self.exp_dir.mkdir(parents=True)               
+        self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" / "task-ES"
+        if self.exp_dir.exists():
+            raise ValueError("An experiment dir for this subject already exists")
+        self.exp_dir.mkdir(parents=True)
         self.logfile = self.exp_dir / f"sub_{self.subj}_task-ES_log.log"
         self.eventfile = self.exp_dir / f"sub_{self.subj}_task-ES_ev.yaml"
         self.expfile = self.exp_dir / f"sub_{self.subj}_task-ES_exp.yaml"
@@ -51,7 +52,6 @@ class experience_sampling:
         # parallel settings
         if self.parallel:
             self.port = parallel.ParallelPort(address=0xC020)
- 
 
         print(f"Experiment created for subject {self.subj}")
 
@@ -128,7 +128,7 @@ class experience_sampling:
         """Fixation cross stimulus."""
 
         fixation_cross = visual.GratingStim(
-
+            win=self.win, size=0.1, pos=[0, 0.10], sf=0, color="black", mask="cross"
         )
         return fixation_cross
 
@@ -144,13 +144,11 @@ class experience_sampling:
         flip_time = self.win.flip()
         # auditory_probe.play(when=flip_time)
 
-
         if self.parallel:
             self.port.setData(0x2)  # Probe Time = 2 (S 02)
             core.wait(0.1)
             self.port.setData(0)
             core.wait(0.1)
-
 
         probe_time = float(self.clock.getTime())
         self._events.append((probe_time, "PROBE_START", trial_num))
