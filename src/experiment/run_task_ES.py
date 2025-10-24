@@ -1,10 +1,10 @@
-# from task_ES import experience_sampling
-from task_ES_mac import experience_sampling  
+from task_ES import experience_sampling
+# from task_ES_mac import experience_sampling  
 from psychopy import event, core, visual
 
 
 subject_id = '000'
-parallel = False # Set to True when using EEG-fMRI
+parallel = True # Set to True when using EEG-fMRI
 
 if __name__ == "__main__":
     # fMRI 2: Experience Sampling
