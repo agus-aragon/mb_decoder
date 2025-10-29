@@ -1,6 +1,7 @@
-# from psychopy import prefs
-# prefs.hardware['audioDevice'] = 'SPDIF-Out (SB Recon3D PCIe)'
-# import psychtoolbox.audio
+from psychopy import prefs
+
+prefs.hardware["audioDevice"] = "SPDIF-Out (SB Recon3D PCIe)"
+import psychtoolbox.audio
 import yaml
 import logging
 import random
@@ -9,7 +10,7 @@ import shutil
 
 # from psychtoolbox import audio
 from psychopy import visual, core, event, parallel, sound
-# from psychopy.sound import backend_ptb
+from psychopy.sound import backend_ptb
 
 SCANNER = 15
 EXPERIMENT = 25
@@ -26,20 +27,15 @@ class experience_sampling:
     def __init__(self, params):
         # Task parameters
         self.subj = params["subj"]
-        self.n_trials = params["n_trials"]
-        self.interval = params["interval"]
-        self.states = params["states"]
         self.parallel = params["parallel"]
-        self.duration = params["duration"]
         self.response_buttons = params["response_buttons"]
-        self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" / "task-ES"
+        self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" / "preparation"
         if self.exp_dir.exists():
             raise ValueError("An experiment dir for this subject already exists")
         self.exp_dir.mkdir(parents=True)
-        self.logfile = self.exp_dir / f"sub_{self.subj}_task-ES_log.log"
-        self.eventfile = self.exp_dir / f"sub_{self.subj}_task-ES_ev.yaml"
-        self.expfile = self.exp_dir / f"sub_{self.subj}_task-ES_exp.yaml"
-        self.jittering = params["jittering"]
+        self.logfile = self.exp_dir / f"sub_{self.subj}_preparation_log.log"
+        self.eventfile = self.exp_dir / f"sub_{self.subj}_preparation_ev.yaml"
+        self.expfile = self.exp_dir / f"sub_{self.subj}_preparation_exp.yaml"
 
         self._volume_count = 0
         self._events = []
@@ -53,7 +49,7 @@ class experience_sampling:
         if self.parallel:
             self.port = parallel.ParallelPort(address=0xC020)
 
-        print(f"Experiment created for subject {self.subj}")
+        print(f"Preparation created for subject {self.subj}")
 
     def initiate_eeg(self):
         """Send TTL to mark in EEG before start of task."""
@@ -71,34 +67,9 @@ class experience_sampling:
         )
         self._events.append((eeg_time, "EEG_START", -1))
 
-    def _jittering(self):
-        """Return a random jittering time."""
-        # Calculate total extra time to distribute
-        total_seconds = self.duration * 60
-        base_time = self.n_trials * self.interval
-        extra_time = total_seconds - base_time
-
-        if extra_time < 0:
-            raise ValueError("Duration too short for number of trials and interval")
-
-        # Generate jitters around zero
-        jitter_range = self.jittering
-        jitter_values = [
-            random.uniform(-jitter_range, jitter_range) for _ in range(self.n_trials)
-        ]
-
-        # Adjust so they sum to extra_time
-        current_sum = sum(jitter_values)
-        adjustment = (extra_time - current_sum) / self.n_trials
-        jitter_values = [j + adjustment for j in jitter_values]
-
-        self.jittering = jitter_values
-
-        return self.jittering
-
     def configure_logger(self):
         """Logger that prints messages to the console."""
-        logger = logging.getLogger("ES_logger")
+        logger = logging.getLogger("preparation_logger")
         logger.setLevel(SCANNER)
 
         ch = logging.StreamHandler()
@@ -126,174 +97,132 @@ class experience_sampling:
     def instructions(self):
         """Display instructions to the participant."""
         instructions_ES_text = (
-            "Before we start, let's remember the instructions.\n\n"
-            "During the task: let your mind wander freely, keep your eyes on the cross (+), and stay still.\n\n"
+            "Before starting with the task, let's go through some instructions.\n\n"
+            "During the task, let your mind wander freely, keep your eyes open looking at the cross (+), \n\n"
+            "and try to stay as still as possible. \n\n"
+            "At random times, an exclamation mark '!' will appear on the screen, inviting you to\n\n"
+            "indicate your mental state just before it \n\n"
             "Press any key to continue (Page 1 of 6)."
         )
-        instructions_ES2_text = (
-            "When '!' appears, indicate your mental state just before it:\n\n"
-        )
-        instructions_ES2options_text = (
-            "1. Thought (Index): Thinking about something\n"
-            "2. Blank (Middle): Mind was blank, no thought you can spot\n"
-            "3. Sleep (Ring): Feeling drowsy or asleep\n"
-            "4. Sensation (Little): Noticing body sensations or the environment\n\n"
-        )
-        instructions_ES2continue_text = (
-            "Press any key to continue (Page 2 of 6)."
-        )
-        instructions_image_text = "This is how the screen will look like:"
-        instructions_imageEScontinue_text = "Press any key to continue (Page 3 of 6)."
-        instructions_arousaltext = (
-            "Next, you will rate how awake you feel from 0 (very sleepy) to 100 (very alert).\n\n"
-            "Index/Ring: Adjust slider | Middle: Confirm\n\n"
-            "Press any key to continue (Page 4 of 6)."
+
+        instructions_ES_image_text =(
+            "After the '!' you will see four options on the screen:\n\n"
+            "You should select the option that best describes your mental state just before the probe:\n\n"
+            "1. 'Thought' (index finger): if you were thinking about something.\n\n"
+            "2. 'Blank' (middle finger): if your mind was blank, with no thoughts you can spot.\n\n"
+            "3. 'Sleep' (ring finger): if you were feeling drowsy or asleep.\n\n"
+            "4. 'Sensation' (little finger): if you were focused on the enviorement or body sensations.\n\n"
+
+            "Press any key to continue and see a graphical representation of how the screen will look like (Page 2 of 6)."
         )
 
-        instructions_imagearousalcontinue_text = (
+        
+        instructions_continue_ES_image_text = (
+            "Press any key to continue (Page 3 of 6)."
+        )
+        instructions_arousaltext = (
+            "If you select 'Blank', you will be asked to rate how awake you are on a scale from 0 (Very Sleepy) to 100 (Very Alert).\n\n"
+            "You can move the slider up and down using the index and ring finger buttons.\n\n"
+            "You can press OK with the middle finger.\n\n"
+            "Press any key to continue and see a graphical representation of how the screen will look like (Page 4 of 6)."
+        )
+
+        instructions_continue_arousal_text = (
             "Press any key to continue (Page 5 of 6)."
         )
 
-        instructions_readytostart_text = (
-            "Remember: just let your mind wander freely :)\n\n"
-            "When you are ready, press any key to begin (Page 6 of 6)."
+        instructions_start_text = (
+            "We will now start the experiment :)\n\n"
+            "Press any key to begin (Page 6 of 6)."
         )
-        instructions_startsoon_text = "The experiment will start in a few seconds :)"
+        
         image_ES = visual.ImageStim(
             win=self.win,
             image=picture_dir / "instructions_ES.png",
             pos=(0, 0),
-            size=(1.2, 0.65),
+            size=(1, 1),
         )
         image_arousal = visual.ImageStim(
             win=self.win,
             image=picture_dir / "instructions_arousal.png",
             pos=(0, 0),
-            size=(1.3, 0.65),
+            size=(1, 1),
         )
         # Page 1
-        instr1 = visual.TextStim(
+        instructions_ES = visual.TextStim(
             self.win,
             text=instructions_ES_text,
             color="black",
             height=0.05,
-            wrapWidth=1.7,
-            pos=(0, 0.15),
+            wrapWidth=1.5,
+            pos=(0, 0),
         )
-        instr1.draw()
+        instructions_ES.draw()
         self.win.flip()
         event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
         # Page 2
-        instr1b = visual.TextStim(
+        instructions_ES_image = visual.TextStim(
             self.win,
-            text=instructions_ES2_text,
+            text=instructions_ES_image_text,
             color="black",
             height=0.05,
-            wrapWidth=1.7,
-            pos=(0, 0.3),
+            wrapWidth=1.5,
+            pos=(0, -0.35),
         )
-        instr1b_options = visual.TextStim(
-            self.win,
-            text=instructions_ES2options_text,
-            color="black",
-            height=0.05,
-            wrapWidth=1.7,
-            pos=(0, 0.10),
-            alignText='left',
-        )
-        instr1b_continue = visual.TextStim(
-            self.win,
-            text=instructions_ES2continue_text,
-            color="black",
-            height=0.05,
-            wrapWidth=1.0,
-            pos=(0, -0.02),
-        )
-        instr1b.draw()
-        instr1b_options.draw()
-        instr1b_continue.draw()
+        image_ES.draw()
+        instructions_ES_image.draw()
         self.win.flip()
         event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
         # Page 3
-        instr2 = visual.TextStim(
+        instructions_continue_ES_image = visual.TextStim(
             self.win,
-            text=instructions_image_text,
+            text=instructions_continue_ES_image_text,
             color="black",
             height=0.05,
-            wrapWidth=1.7,
-            pos=(0, 0.40),
+            wrapWidth=1.5,
+            pos=(0, 0),
         )
-        instr2_next = visual.TextStim(
-            self.win,
-            text=instructions_imageEScontinue_text,
-            color="black",
-            height=0.05,
-            wrapWidth=1.7,
-            pos=(0, -0.36),
-        )
-        instr2.draw()
-        image_ES.draw()
-        instr2_next.draw()
+        instructions_continue_ES_image.draw()
         self.win.flip()
         event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
         # Page 4
-        instr3 = visual.TextStim(
+        instructions_arousal = visual.TextStim(
             self.win,
             text=instructions_arousaltext,
             color="black",
             height=0.05,
-            wrapWidth=1.7,
-            pos=(0, 0.15),
+            wrapWidth=1.5,
+            pos=(0, 0),
         )
-        instr3.draw()
+        instructions_arousal.draw()
         self.win.flip()
         event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
         # Page 5
-        instr4 = visual.TextStim(
+        instructions_continue_arousal = visual.TextStim(
             self.win,
-            text=instructions_image_text,
+            text=instructions_continue_arousal_text,
             color="black",
             height=0.05,
-            wrapWidth=1.7,
-            pos=(0, 0.40),
+            wrapWidth=1.5,
+            pos=(0, 0),
         )
-        instr4_next = visual.TextStim(
-            self.win,
-            text=instructions_imagearousalcontinue_text,
-            color="black",
-            height=0.05,
-            wrapWidth=1.7,
-            pos=(0, -0.36),
-        )
-        instr4.draw()
-        instr4_next.draw()
-        image_arousal.draw()
+        instructions_continue_arousal.draw()
         self.win.flip()
         event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
         # Page 6
-        instr5 = visual.TextStim(
+        instructions_start = visual.TextStim(
             self.win,
-            text=instructions_readytostart_text,
+            text=instructions_start_text,
             color="black",
             height=0.05,
-            wrapWidth=1.7,
-            pos=(0, 0.15),
+            wrapWidth=1.5,
+            pos=(0, 0),
         )
-        instr5.draw()
+        instructions_start.draw()
         self.win.flip()
         event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
-        # Page 7
-        instr6 = visual.TextStim(
-            self.win,
-            text=instructions_startsoon_text,
-            color="black",
-            height=0.05,
-            wrapWidth=1.7,
-            pos=(0, 0.15),
-        )
-        instr6.draw()
-        self.win.flip()
 
+     
     def draw_cross(self):
         """Fixation cross stimulus."""
 
@@ -309,10 +238,10 @@ class experience_sampling:
             self.win, text="!", color="black", height=0.4, bold=True, pos=(0, 0.10)
         )
 
-        # auditory_probe = sound.backend_ptb.SoundPTB(value=1000, secs=2, volume=0.5)
+        auditory_probe = sound.backend_ptb.SoundPTB(value=1000, secs=2, volume=0.5)
         visual_probe.draw()
         flip_time = self.win.flip()
-        # auditory_probe.play(when=flip_time)
+        auditory_probe.play(when=flip_time)
 
         if self.parallel:
             self.port.setData(0x2)  # Probe Time = 2 (S 02)
@@ -362,6 +291,7 @@ class experience_sampling:
             text=prompt_txt,
             color="black",
             height=0.08,
+            wrapWidth=1,
             pos=(0, 0.008),
         )
         image = visual.ImageStim(
@@ -576,6 +506,7 @@ class experience_sampling:
         except Exception as e:
             self.logger.error(f"Failed to save trial data: {e}")
 
+
     def run_trial(self, trial_num):
         """Run a single trial - handles all trial-specific operations."""
         self.logger.info(f"STARTING TRIAL {trial_num + 1} ...")
@@ -596,7 +527,7 @@ class experience_sampling:
             msg=f"[[{trial_start}]] Trial {trial_num + 1} started at {trial_start}",
         )
 
-        trial_duration = self.jittering[trial_num] + self.interval
+        trial_duration = self.jitter_values[trial_num] + self.interval
         self.logger.log(
             level=EXPERIMENT,
             msg=f"REST {trial_num + 1} duration of {trial_duration:.3f}s",
@@ -611,11 +542,12 @@ class experience_sampling:
 
         # Get arousal rating only for Mind Blanking
         arousal, arousal_rt = None, None
-        self.logger.log(
+        if state == "Blank":
+            self.logger.log(
                 level=EXPERIMENT,
-                msg="Getting arousal rating...",
+                msg="Selected Mind Blanking, getting arousal rating...",
             )
-        arousal, arousal_rt = self.get_arousal_rating(trial_num)
+            arousal, arousal_rt = self.get_arousal_rating(trial_num)
 
         # Return trial data
         return {
@@ -631,8 +563,6 @@ class experience_sampling:
 
     def run_experiment(self):
         """Main experiment loop - coordinates the overall flow."""
-        # Instructions
-        self.instructions()
         # Start EEG recording
         self.initiate_eeg()
         # Wait for scanner triggers
@@ -652,7 +582,7 @@ class experience_sampling:
             self._events.append((trial_end, "TRIAL_END", trial_num))
             all_trials_data.append(trial_data)
             self._save_events()
-            self._save_trial_data(all_trials_data)
+            self._save_trial_data(all_trials_data) 
 
         self.clear_key_buffer()
 

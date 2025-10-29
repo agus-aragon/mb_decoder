@@ -1,11 +1,13 @@
 from psychopy import prefs
-prefs.hardware['audioDevice'] = 'SPDIF-Out (SB Recon3D PCIe)'
+
+prefs.hardware["audioDevice"] = "SPDIF-Out (SB Recon3D PCIe)"
 import psychtoolbox.audio
 import yaml
 import logging
 import random
 from pathlib import Path
 import shutil
+
 # from psychtoolbox import audio
 from psychopy import visual, core, event, parallel, sound
 from psychopy.sound import backend_ptb
@@ -32,9 +34,9 @@ class experience_sampling:
         self.duration = params["duration"]
         self.response_buttons = params["response_buttons"]
         self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" / "task-ES"
-        if self.exp_dir.exists():                                                 
-            raise ValueError("An experiment dir for this subject already exists") 
-        self.exp_dir.mkdir(parents=True)               
+        if self.exp_dir.exists():
+            raise ValueError("An experiment dir for this subject already exists")
+        self.exp_dir.mkdir(parents=True)
         self.logfile = self.exp_dir / f"sub_{self.subj}_task-ES_log.log"
         self.eventfile = self.exp_dir / f"sub_{self.subj}_task-ES_ev.yaml"
         self.expfile = self.exp_dir / f"sub_{self.subj}_task-ES_exp.yaml"
@@ -51,7 +53,6 @@ class experience_sampling:
         # parallel settings
         if self.parallel:
             self.port = parallel.ParallelPort(address=0xC020)
- 
 
         print(f"Experiment created for subject {self.subj}")
 
@@ -92,10 +93,9 @@ class experience_sampling:
         adjustment = (extra_time - current_sum) / self.n_trials
         jitter_values = [j + adjustment for j in jitter_values]
 
-        random.shuffle(jitter_values)
-        self.jittering = jitter_values
+        self.jitter_values = jitter_values
 
-        return self.jittering
+        return jitter_values
 
     def configure_logger(self):
         """Logger that prints messages to the console."""
@@ -124,6 +124,155 @@ class experience_sampling:
 
         return logger
 
+    def instructions(self):
+        """Display instructions to the participant."""
+        instructions_ES_text = (
+            "Before we start, let's remember the instructions.\n\n"
+            "During the task: let your mind wander freely, keep your eyes on the cross (+), and stay still.\n\n"
+            "Press any key to continue (Page 1 of 6)."
+        )
+        instructions_ES2_text = (
+            "When '!' appears, indicate your mental state just before it:\n\n"
+            "1. Thought (Index): Thinking about something\n"
+            "2. Blank (Middle): Mind was blank, no thought you can spot\n"
+            "3. Sleep (Ring): Feeling drowsy or asleep\n"
+            "4. Sensation (Little): Noticing body sensations or the environment\n\n"
+            "Press any key to continue (Page 2 of 6)."
+        )
+        instructions_image_text = "This is how the screen will look like:"
+        instructions_imageEScontinue_text = "Press any key to continue (Page 3 of 6)."
+        instructions_arousaltext = (
+            "Next, you will rate how awake you feel from 0 (very sleepy) to 100 (very alert).\n\n"
+            "Index/Ring: Adjust slider | Middle: Confirm\n\n"
+            "Press any key to continue (Page 4 of 6)."
+        )
+
+        instructions_imagearousalcontinue_text = (
+            "Press any key to continue (Page 5 of 6)."
+        )
+
+        instructions_readytostart_text = (
+            "Remember: just let your mind wander freely :)\n\n"
+            "When you are ready, press any key to begin (Page 6 of 6)."
+        )
+        instructions_startsoon_text = "The experiment will start in a few seconds :)"
+        image_ES = visual.ImageStim(
+            win=self.win,
+            image=picture_dir / "instructions_ES.png",
+            pos=(0, 0),
+            size=(1, 0.65),
+        )
+        image_arousal = visual.ImageStim(
+            win=self.win,
+            image=picture_dir / "instructions_arousal.png",
+            pos=(0, 0),
+            size=(1, 0.65),
+        )
+        # Page 1
+        instr1 = visual.TextStim(
+            self.win,
+            text=instructions_ES_text,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, 0.15),
+        )
+        instr1.draw()
+        self.win.flip()
+        event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
+        # Page 2
+        instr1b = visual.TextStim(
+            self.win,
+            text=instructions_ES2_text,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, 0.15),
+        )
+        instr1b.draw()
+        self.win.flip()
+        event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
+        # Page 3
+        instr2 = visual.TextStim(
+            self.win,
+            text=instructions_image_text,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, 0.40),
+        )
+        instr2_next = visual.TextStim(
+            self.win,
+            text=instructions_imageEScontinue_text,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, -0.36),
+        )
+        instr2.draw()
+        image_ES.draw()
+        instr2_next.draw()
+        self.win.flip()
+        event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
+        # Page 4
+        instr3 = visual.TextStim(
+            self.win,
+            text=instructions_arousaltext,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, 0.15),
+        )
+        instr3.draw()
+        self.win.flip()
+        event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
+        # Page 5
+        instr4 = visual.TextStim(
+            self.win,
+            text=instructions_image_text,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, 0.40),
+        )
+        instr4_next = visual.TextStim(
+            self.win,
+            text=instructions_imagearousalcontinue_text,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, -0.36),
+        )
+        instr4.draw()
+        instr4_next.draw()
+        image_arousal.draw()
+        self.win.flip()
+        event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
+        # Page 6
+        instr5 = visual.TextStim(
+            self.win,
+            text=instructions_readytostart_text,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, 0.15),
+        )
+        instr5.draw()
+        self.win.flip()
+        event.waitKeys(keyList=self.response_buttons, timeStamped=self.clock)
+        # Page 7
+        instr6 = visual.TextStim(
+            self.win,
+            text=instructions_startsoon_text,
+            color="black",
+            height=0.05,
+            wrapWidth=1.7,
+            pos=(0, 0.15),
+        )
+        instr6.draw()
+        self.win.flip()
+
+
     def draw_cross(self):
         """Fixation cross stimulus."""
 
@@ -144,13 +293,11 @@ class experience_sampling:
         flip_time = self.win.flip()
         auditory_probe.play(when=flip_time)
 
-
         if self.parallel:
             self.port.setData(0x2)  # Probe Time = 2 (S 02)
             core.wait(0.1)
             self.port.setData(0)
             core.wait(0.1)
-
 
         probe_time = float(self.clock.getTime())
         self._events.append((probe_time, "PROBE_START", trial_num))
@@ -193,15 +340,15 @@ class experience_sampling:
             self.win,
             text=prompt_txt,
             color="black",
-            height=0.09,
+            height=0.08,
             wrapWidth=1,
-            pos=(0, 0.005),
+            pos=(0, 0.008),
         )
         image = visual.ImageStim(
             win=self.win,
             image=picture_dir / "joystick_mri.png",
-            pos=(0.60, 0.10),
-            size=(0.50, 0.50),
+            pos=(0.60, 0.13),
+            size=(0.65, 0.65),
         )
         image.draw()
         prompt.draw()
@@ -232,6 +379,8 @@ class experience_sampling:
             state_name = "Blank"
         elif response == "g":
             state_name = "Sleep"
+        elif response == "r":
+            state_name = "Sensation"
 
         self._events.append((response_time, "RESPONSE", trial_num, response))
 
@@ -257,17 +406,17 @@ class experience_sampling:
             self.win,
             text="How awake do you feel right now?",
             color="black",
-            height=0.05,
-            pos=(0.00, 0.38),
+            height=0.063,
+            pos=(0.00, 0.40),
         )
 
         # Labels at top and bottom of slider
         top_label = visual.TextStim(
-            self.win, text="Very alert", color="black", height=0.05, pos=(0.0, 0.30)
+            self.win, text="Very alert", color="black", height=0.06, pos=(0.0, 0.30)
         )
 
         bottom_label = visual.TextStim(
-            self.win, text="Very sleepy", color="black", height=0.05, pos=(0.00, -0.10)
+            self.win, text="Very sleepy", color="black", height=0.06, pos=(0.00, -0.10)
         )
 
         # Vertical slider line - positioned higher and to the left
@@ -281,8 +430,8 @@ class experience_sampling:
         image = visual.ImageStim(
             win=self.win,
             image=picture_dir / "joystick_mri_arousal.png",
-            pos=(0.60, 0.10),
-            size=(0.50, 0.50),
+            pos=(0.60, 0.05),
+            size=(0.65, 0.65),
         )
         self.clear_key_buffer()
 
@@ -309,7 +458,7 @@ class experience_sampling:
                 self.win,
                 text=f"{rating}%",
                 color="black",
-                height=0.04,
+                height=0.05,
                 pos=(0.08, y_pos),
             )
             value_text.draw()
@@ -357,7 +506,7 @@ class experience_sampling:
         self.win.flip()
         core.wait(0.1)
         return rating, rt
-
+    
     def wait_scanner_trigger(self, n_triggers=5):
         """Wait for scanner trigger (e.g., '5' key press)."""
         self.logger.info(f"Waiting for {n_triggers} scanner triggers ...")
@@ -389,6 +538,25 @@ class experience_sampling:
         self.experiment_start_time = trigger_times[0]
         self.logger.info(f"Experiment T0: {self.experiment_start_time:.6f}")
 
+    def _save_events(self):
+        """Save events to YAML file."""
+        try:
+            sorted_events = sorted(self._events, key=lambda x: x[0])
+            list_events = [list(x) for x in sorted_events]
+            with open(self.eventfile, "w") as f:
+                yaml.dump(list_events, f)
+        except Exception as e:
+            self.logger.error(f"Failed to save events: {e}")
+
+    def _save_trial_data(self, all_trials_data):
+        """Save trial data to YAML file."""
+        try:
+            with open(self.expfile, "w") as f:
+                yaml.dump(all_trials_data, f)
+        except Exception as e:
+            self.logger.error(f"Failed to save trial data: {e}")
+
+
     def run_trial(self, trial_num):
         """Run a single trial - handles all trial-specific operations."""
         self.logger.info(f"STARTING TRIAL {trial_num + 1} ...")
@@ -409,7 +577,7 @@ class experience_sampling:
             msg=f"[[{trial_start}]] Trial {trial_num + 1} started at {trial_start}",
         )
 
-        trial_duration = self.jittering[trial_num] + self.interval
+        trial_duration = self.jitter_values[trial_num] + self.interval
         self.logger.log(
             level=EXPERIMENT,
             msg=f"REST {trial_num + 1} duration of {trial_duration:.3f}s",
@@ -445,6 +613,8 @@ class experience_sampling:
 
     def run_experiment(self):
         """Main experiment loop - coordinates the overall flow."""
+        # Instructions
+        self.instructions()
         # Start EEG recording
         self.initiate_eeg()
         # Wait for scanner triggers
@@ -463,6 +633,8 @@ class experience_sampling:
             )
             self._events.append((trial_end, "TRIAL_END", trial_num))
             all_trials_data.append(trial_data)
+            self._save_events()
+            self._save_trial_data(all_trials_data) 
 
         self.clear_key_buffer()
 
@@ -504,15 +676,9 @@ class experience_sampling:
         self.logger.info("Experiment completed successfully!")
         self.win.close()
 
-        # Save all_trials_data
-        with open(self.expfile, "w") as f_exp:
-            yaml.dump(all_trials_data, f_exp)
-
-        # Save events
-        sorted_events = sorted(self._events, key=lambda x: x[0])
-        list_events = [list(x) for x in sorted_events]
-        with open(self.eventfile, "w") as f_exp:
-            yaml.dump(list_events, f_exp)
+        # Final save (redundant but safe)
+        self._save_trial_data(all_trials_data)
+        self._save_events()
 
         # Copy exp file to subjects folder
         shutil.copy(Path(__file__), self.exp_dir)

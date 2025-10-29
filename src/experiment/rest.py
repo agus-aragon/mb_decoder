@@ -3,10 +3,7 @@ import logging
 from pathlib import Path
 import shutil
 
-# from psychtoolbox import audio
-# import psychtoolbox as ptb
 from psychopy import visual, core, event, parallel
-
 
 EEG = 25
 SCANNER = 26
@@ -31,7 +28,7 @@ class resting_state:
 
         self._volume_count = 0
         self._events = []
-
+        self.duration = params["duration"]
         self.win = visual.Window(size=(1010, 520), units="height", color="white")
         self.clock = core.Clock()
         self.logger = self.configure_logger()
@@ -163,8 +160,20 @@ class resting_state:
         self.draw_cross()
         self.clear_key_buffer()
         print('Press "f" to finish the rest')
+
+        duration_message_shown = False
+        duration = self.duration * 60
+
         finished = False
         while not finished:
+            elapsed_time = self.clock.getTime() - self.experiment_start_time
+            if elapsed_time >= duration and not duration_message_shown:
+                print("\n" + "="*50)
+                print(f"{duration} minutes passed, you can press 'f' to finish")
+                print("="*50 + "\n")
+                self.logger.info("10 minutes passed since first scanner trigger")
+                duration_message_shown = True
+
             keys = event.getKeys(["f", "t"], timeStamped=self.clock)
             for key, timestamp in keys:
                 if key == "f":
@@ -185,6 +194,10 @@ class resting_state:
                     self.logger.info(f"END OF REST. Volume count: {self._volume_count}")
                 elif key == "t":
                     self._events.append((timestamp, "SCANNER", self._volume_count))
+                    self.logger.log(
+                        level=SCANNER,
+                        msg=f"[[{timestamp}]] Volume {self._volume_count} received at {timestamp:.6f} s",
+                    )
                     self._volume_count += 1
             core.wait(0.1)
 
