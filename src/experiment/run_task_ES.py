@@ -10,10 +10,9 @@ if __name__ == "__main__":
     # fMRI 2: Experience Sampling
     params_es = {
         "subj": subject_id,
-        "n_trials": 10, #50
+        "n_trials": 1, #50
         "interval": 10,# 45
         "jittering": 5, #15
-        "duration": 3,  # 40 # total duration in minutes
         "states": ["Thought", "Blank", "Asleep", "Sensation"],
         "parallel": parallel,
         "response_buttons": ["b", "y", "g", "r"],

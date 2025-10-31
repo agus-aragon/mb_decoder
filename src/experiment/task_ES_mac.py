@@ -6,6 +6,7 @@ import logging
 import random
 from pathlib import Path
 import shutil
+import numpy as np
 
 # from psychtoolbox import audio
 from psychopy import visual, core, event, parallel, sound
@@ -19,6 +20,109 @@ logging.addLevelName(SCANNER_SUMMARY, "SCANNER_SUMMARY")
 logging.addLevelName(EXPERIMENT, "EXPERIMENT")
 picture_dir = Path(__file__).parent / "pictures"
 
+RANDOM_JITTERS = np.array([
+    0.52652746,
+    0.15729363,
+    0.75443592,
+    0.060392,
+    0.35669565,
+    0.6807377,
+    0.73926642,
+    0.15586217,
+    0.47128575,
+    0.71444614,
+    0.4809827,
+    0.58392067,
+    0.17503814,
+    0.2759395,
+    0.8467543,
+    0.63257164,
+    0.56914393,
+    0.85239554,
+    0.61479426,
+    0.6232063,
+    0.69778271,
+    0.31498446,
+    0.27391724,
+    0.41028833,
+    0.86310978,
+    0.13499124,
+    0.89001996,
+    0.31498447,
+    0.67315201,
+    0.62856914,
+    0.76812966,
+    0.09887945,
+    0.43616935,
+    0.49564682,
+    0.94048908,
+    0.50164306,
+    0.83092926,
+    0.75208337,
+    0.63359351,
+    0.08121215,
+    0.51719137,
+    0.40122761,
+    0.4463277,
+    0.26206885,
+    0.52061206,
+    0.24690058,
+    0.50681413,
+    0.85429209,
+    0.32270196,
+    0.05197819,
+    0.99644992,
+    0.73888312,
+    0.08686468,
+    0.6325577,
+    0.36590586,
+    0.70881948,
+    0.97023796,
+    0.69525613,
+    0.1529349,
+    0.48179428,
+    0.91902002,
+    0.37082624,
+    0.83830293,
+    0.93963037,
+    0.93150584,
+    0.6887494,
+    0.49496108,
+    0.67194435,
+    0.05938193,
+    0.72451566,
+    0.29710184,
+    0.08341319,
+    0.65451143,
+    0.11456868,
+    0.74371139,
+    0.41923367,
+    0.1164916,
+    0.66932978,
+    0.00931658,
+    0.39217487,
+    0.41103187,
+    0.76287093,
+    0.11590666,
+    0.93085323,
+    0.92980592,
+    0.67747251,
+    0.96370689,
+    0.72976788,
+    0.67509138,
+    0.67489054,
+    0.60635407,
+    0.52165654,
+    0.4089209,
+    0.99235989,
+    0.83686703,
+    0.86539419,
+    0.21215573,
+    0.00713328,
+    0.95010646,
+    0.21432487,
+])
+
 
 class experience_sampling:
     """A class to run a MB experience sampling task."""
@@ -30,7 +134,6 @@ class experience_sampling:
         self.interval = params["interval"]
         self.states = params["states"]
         self.parallel = params["parallel"]
-        self.duration = params["duration"]
         self.response_buttons = params["response_buttons"]
         self.exp_dir = Path(__file__).parent / f"sub-{self.subj}" / "task-ES"
         if self.exp_dir.exists():
@@ -74,23 +177,10 @@ class experience_sampling:
     def _jittering(self):
         """Return a random jittering time."""
         # Calculate total extra time to distribute
-        total_seconds = self.duration * 60
-        base_time = self.n_trials * self.interval
-        extra_time = total_seconds - base_time
-
-        if extra_time < 0:
-            raise ValueError("Duration too short for number of trials and interval")
-
-        # Generate jitters around zero
         jitter_range = self.jittering
-        jitter_values = [
-            random.uniform(-jitter_range, jitter_range) for _ in range(self.n_trials)
-        ]
 
-        # Adjust so they sum to extra_time
-        current_sum = sum(jitter_values)
-        adjustment = (extra_time - current_sum) / self.n_trials
-        jitter_values = [j + adjustment for j in jitter_values]
+        jitter_values = (RANDOM_JITTERS[: self.n_trials]* 2-1) * jitter_range
+        np.random.shuffle(jitter_values)
 
         self.jittering = jitter_values
 
@@ -139,9 +229,7 @@ class experience_sampling:
             "3. Sleep (Ring): Feeling drowsy or asleep\n"
             "4. Sensation (Little): Noticing body sensations or the environment\n\n"
         )
-        instructions_ES2continue_text = (
-            "Press any key to continue (Page 2 of 6)."
-        )
+        instructions_ES2continue_text = "Press any key to continue (Page 2 of 6)."
         instructions_image_text = "This is how the screen will look like:"
         instructions_imageEScontinue_text = "Press any key to continue (Page 3 of 6)."
         instructions_arousaltext = (
@@ -199,7 +287,7 @@ class experience_sampling:
             height=0.05,
             wrapWidth=1.7,
             pos=(0, 0.10),
-            alignText='left',
+            alignText="left",
         )
         instr1b_continue = visual.TextStim(
             self.win,
@@ -612,9 +700,9 @@ class experience_sampling:
         # Get arousal rating only for Mind Blanking
         arousal, arousal_rt = None, None
         self.logger.log(
-                level=EXPERIMENT,
-                msg="Getting arousal rating...",
-            )
+            level=EXPERIMENT,
+            msg="Getting arousal rating...",
+        )
         arousal, arousal_rt = self.get_arousal_rating(trial_num)
 
         # Return trial data
