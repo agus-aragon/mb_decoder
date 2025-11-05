@@ -165,7 +165,7 @@ class experience_sampling:
         self.logger.info("Start EEG recording and press E after that...")
         keys = event.waitKeys(keyList=["e"], timeStamped=self.clock, clearEvents=True)
         if self.parallel:
-            self.port.setData(1)  # Beginning of EEG = 1 (S 01)
+            self.port.setData(1)  # Beginning of EEG = 1 (S 1)
             core.wait(0.1)
             self.port.setData(0)
             core.wait(0.1)
@@ -406,7 +406,7 @@ class experience_sampling:
         auditory_probe.play(when=flip_time)
 
         if self.parallel:
-            self.port.setData(0x2)  # Probe Time = 2 (S 02)
+            self.port.setData(0x2)  # Probe Time = 2 (S 2)
             core.wait(0.1)
             self.port.setData(0)
             core.wait(0.1)
@@ -677,7 +677,7 @@ class experience_sampling:
         self.cross.draw()
         self.win.flip()
         if self.parallel:
-            self.port.setData(0x10)  # Response Time Arousal = 5 (S 16)
+            self.port.setData(0x10)  # Run Trial = 5 (S 16)
             core.wait(0.1)
             self.port.setData(0)
             core.wait(0.1)
