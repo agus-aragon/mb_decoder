@@ -11,8 +11,7 @@ forms = pd.read_excel(datapath / "responses_form.xlsx")
 
 # %%
 
-
-['id',
+new_columns_names = ['id',
  'start_response',
  'submit_response',
  'email_default',
@@ -188,3 +187,44 @@ forms = pd.read_excel(datapath / "responses_form.xlsx")
  "mri_availability",
  'mri_availability_details',
  'comment']
+column_mapping = dict(zip(
+    forms.columns,  # current names
+    new_columns_names # your new names
+))
+
+forms = forms.rename(columns=column_mapping)
+
+#%%
+# Preview the mapping
+print("Column mapping preview:")
+for old, new in list(column_mapping.items())[:5]:
+    print(f"  '{old}' → '{new}'")
+print(f"  ... ({len(column_mapping)} total)")
+
+# Show any that might be problematic
+if len(forms.columns) != len(new_columns_names):
+    print("\n⚠️ Length mismatch - NOT renaming!")
+else:
+    forms = forms.rename(columns=column_mapping)
+    print("✓ Columns renamed successfully!")
+
+    # %%%
+# Check if lengths match first
+if len(forms.columns) != len(new_columns_names):
+    print(f"WARNING: Column count mismatch!")
+    print(f"Excel has {len(forms.columns)} columns")
+    print(f"New names has {len(new_columns_names)} names")
+    print(f"Difference: {len(forms.columns) - len(new_columns_names)}")
+else:
+    print("✓ Column counts match!")
+
+# Create the mapping
+column_mapping = dict(zip(forms.columns, new_columns_names))
+
+# Rename
+forms = forms.rename(columns=column_mapping)
+
+# Verify it worked
+print(f"\nFirst few columns: {forms.columns[:5].tolist()}")
+
+#TODO: bids format
