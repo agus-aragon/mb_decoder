@@ -67,7 +67,7 @@ We are currently acquiring data and setting the analysis pipeline.
 ## Resources & Links
 
 - **Open Science Framework (OSF):**  https://osf.io/kxj6z/overview  🚧 To be updated
-- **Data Repository:** 
+- **Data Repository:** https://gitlab.uliege.be/poc/datasets/mb_decoder# 🚧 To be updated
 
 
 ---
