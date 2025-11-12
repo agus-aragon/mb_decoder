@@ -6,6 +6,7 @@
 **Contact:** a.aragondaud@uliege.be
 
 ---
+
 ## Summary 
 The MBDecoder projects aim to develop a machine learning (ML) model capable of identifying a mental state known as "Mind Blanking" (MB), in which people feel their mind is empty or have nothing to report about their internal experience, based on brain activity, particularly on whole-brain dynamic functional connectivity (dFC).
 
@@ -62,12 +63,23 @@ Conda Environment for PsychoPy experiment: `experiment/psychopy_env.yml`
 ## Preliminary Analysis Plan
 We are currently acquiring data and setting the analysis pipeline. 
 
+
 ---
 
 ## Resources & Links
 
 - **Open Science Framework (OSF):**  https://osf.io/kxj6z/overview  🚧 To be updated
+  - *Contains:* Pilot data, study protocol, and preliminary materials
+  - *Status:* 🚧 Regularly updated as the project progresses
+  
 - **Data Repository:** https://gitlab.uliege.be/poc/datasets/mb_decoder# 🚧 To be updated
+  - *Contains:* Full dataset in BIDS format
+  - *Status:* 🚧 Under active development
+
+**Data Access Policy:**
+- Pilot data is currently available on OSF
+- Full dataset will be uploaded to the ULiège GitLab repository
+- All data will be made publicly available upon publication of associated papers
 
 
 ---
