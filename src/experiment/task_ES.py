@@ -229,7 +229,7 @@ class experience_sampling:
             "1. Thought (Index): Thinking about something\n"
             "2. Blank (Middle): Mind was blank, no thought you can spot\n"
             "3. Sleep (Ring): Feeling drowsy or asleep\n"
-            "4. Sensation (Little): Noticing body sensations or the environment\n\n"
+            "4. Sensation (Little): Noticing the environment or body sensations\n\n"
         )
         instructions_ES2continue_text = "Press any key to continue (Page 2 of 6)."
         instructions_image_text = "This is how the screen will look like:"
@@ -410,7 +410,8 @@ class experience_sampling:
             core.wait(0.1)
             self.port.setData(0)
             core.wait(0.1)
-
+        else:
+            core.wait(0.1)
         probe_time = float(self.clock.getTime())
         self._events.append((probe_time, "PROBE_START", trial_num))
         self.logger.log(
@@ -715,7 +716,7 @@ class experience_sampling:
             "trial_num": trial_num + 1,
             "probe_onset": probe_time,
             "prompt_onset": prompt_onset,
-            "rest_duration": trial_duration,
+            "rest_duration": float(trial_duration),
             "state": state,
             "response_rt": rt,
             "arousal": arousal,
