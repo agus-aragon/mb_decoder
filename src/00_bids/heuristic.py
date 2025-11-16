@@ -16,12 +16,10 @@ def infotodict(seqinfo):
     # Functional - Rest (10min)
     rest = create_key("sub-{subject}/func/sub-{subject}_task-rest_bold")
     rest_phase = create_key("sub-{subject}/func/sub-{subject}_task-rest_part-phase_bold")
-    rest_physio = create_key("sub-{subject}/func/sub-{subject}_task-rest_physio")
     
     # Functional - Task ES (70min)
     task_ES = create_key("sub-{subject}/func/sub-{subject}_task-ES_bold")
     task_ES_phase = create_key("sub-{subject}/func/sub-{subject}_task-ES_part-phase_bold")
-    task_ES_physio = create_key("sub-{subject}/func/sub-{subject}_task-ES_physio")
     
     # Field maps
     fmap_magnitude1 = create_key("sub-{subject}/fmap/sub-{subject}_magnitude1")
@@ -30,8 +28,8 @@ def infotodict(seqinfo):
     
     info = {
         t1w: [],
-        rest: [], rest_phase: [], rest_physio: [],
-        task_ES: [], task_ES_phase: [], task_ES_physio: [],
+        rest: [], rest_phase: [],
+        task_ES: [], task_ES_phase: [],
         fmap_magnitude1: [], fmap_magnitude2: [], fmap_phasediff: []
     }
     
@@ -45,16 +43,13 @@ def infotodict(seqinfo):
             info[rest].append(s.series_id)
         elif s.dcm_dir_name == "Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_Pha_10_MR":
             info[rest_phase].append(s.series_id)
-        elif s.dcm_dir_name == "Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_PhysioLog_12_MR":
-            info[rest_physio].append(s.series_id)
+
         
         # Task ES (70min) - series 13, 14, 16
         elif s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_13_MR":
             info[task_ES].append(s.series_id)
         elif s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_Pha_14_MR":
             info[task_ES_phase].append(s.series_id)
-        elif s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_PhysioLog_16_MR":
-            info[task_ES_physio].append(s.series_id)
         
         # Field maps - Series 17 has magnitudes
         elif s.dcm_dir_name == "gre_field_mapping_17_MR":
