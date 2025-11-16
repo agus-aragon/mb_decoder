@@ -1,57 +1,72 @@
 # Section 1: Define keys
 # For each sequence, define a key variables (e.g., t1w, dwi etc) and template using the create_key function:
 # key = create_key(output_directory_path_and_name).
+
 def create_key(template, outtype=("nii.gz",), annotation_classes=None):
     if template is None or not template:
         raise ValueError("Template must be a valid format string")
     return (template, outtype, annotation_classes)
 
-
 def infotodict(seqinfo):
-    """Heuristic evaluator for determining which runs belong where
+    """Heuristic evaluator for determining which runs belong where"""
 
-    allowed template fields - follow python string module:
-
-    item: index within category
-    subject: participant id
-    task: task id
-    """
+    # Anatomical
     t1w = create_key("sub-{subject}/anat/sub-{subject}_T1w")
+    
+    # Functional - Rest (10min)
     rest = create_key("sub-{subject}/func/sub-{subject}_task-rest_bold")
+    rest_phase = create_key("sub-{subject}/func/sub-{subject}_task-rest_part-phase_bold")
+    rest_physio = create_key("sub-{subject}/func/sub-{subject}_task-rest_physio")
+    
+    # Functional - Task ES (70min)
     task_ES = create_key("sub-{subject}/func/sub-{subject}_task-ES_bold")
-    fmap_magnitude = create_key("sub-{subject}/fmap/sub-{subject}_magnitude")
+    task_ES_phase = create_key("sub-{subject}/func/sub-{subject}_task-ES_part-phase_bold")
+    task_ES_physio = create_key("sub-{subject}/func/sub-{subject}_task-ES_physio")
+    
+    # Field maps
+    fmap_magnitude1 = create_key("sub-{subject}/fmap/sub-{subject}_magnitude1")
+    fmap_magnitude2 = create_key("sub-{subject}/fmap/sub-{subject}_magnitude2")
     fmap_phasediff = create_key("sub-{subject}/fmap/sub-{subject}_phasediff")
-
+    
     info = {
         t1w: [],
-        rest: [],
-        task_ES: [],
-        fmap_magnitude: [],
-        fmap_phasediff: [],
+        rest: [], rest_phase: [], rest_physio: [],
+        task_ES: [], task_ES_phase: [], task_ES_physio: [],
+        fmap_magnitude1: [], fmap_magnitude2: [], fmap_phasediff: []
     }
     
     for s in seqinfo:
-        # Skip phase and physio files
-        if "Pha_" in s.dcm_dir_name or "PhysioLog" in s.dcm_dir_name:
-            continue
-            
         # T1w
-        if "t1_mpr" in s.dcm_dir_name:
+        if s.dcm_dir_name == "t1_mpr_sag_p2_iso_2_MR":
             info[t1w].append(s.series_id)
         
-        # Rest (series 31)
-        elif s.dcm_dir_name == "1dyn_cmrr_mb2p3_3GEs_2mm_200mm_TR2p5s_31_MR":
+        # Rest (10min) - series 9, 10, 12
+        elif s.dcm_dir_name == "Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_9_MR":
             info[rest].append(s.series_id)
+        elif s.dcm_dir_name == "Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_Pha_10_MR":
+            info[rest_phase].append(s.series_id)
+        elif s.dcm_dir_name == "Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_PhysioLog_12_MR":
+            info[rest_physio].append(s.series_id)
         
-        # ES task (series 35)
-        elif s.dcm_dir_name == "1dyn_cmrr_mb2p3_3GEs_2mm_200mm_TR2p5s_35_MR":
+        # Task ES (70min) - series 13, 14, 16
+        elif s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_13_MR":
             info[task_ES].append(s.series_id)
+        elif s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_Pha_14_MR":
+            info[task_ES_phase].append(s.series_id)
+        elif s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_PhysioLog_16_MR":
+            info[task_ES_physio].append(s.series_id)
         
-        # Field maps
-        elif "gre_field_mapping" in s.dcm_dir_name:
+        # Field maps - Series 17 has magnitudes
+        elif s.dcm_dir_name == "gre_field_mapping_17_MR":
             if s.image_type[2] == "M":
-                info[fmap_magnitude].append(s.series_id)
-            elif s.image_type[2] == "P":
+                if len(info[fmap_magnitude1]) == 0:
+                    info[fmap_magnitude1].append(s.series_id)
+                else:
+                    info[fmap_magnitude2].append(s.series_id)
+
+        # Field maps - Series 18 has the phasediff
+        elif s.dcm_dir_name == "gre_field_mapping_18_MR":
+            if s.image_type[2] == "P":
                 info[fmap_phasediff].append(s.series_id)
 
     return info
