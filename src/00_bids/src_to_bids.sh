@@ -22,5 +22,5 @@ dcm2bidsphysio --infile /data/project/mb_decoder/data/subj_raw/sub-${SUBJECT}/fM
 dcm2bidsphysio --infile /data/project/mb_decoder/data/subj_raw/sub-${SUBJECT}/fMRI/Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_PhysioLog_12_MR/1.dcm \
                --bidsprefix /data/project/mb_decoder/data/bids/mb_decoder/sub-${SUBJECT}/func/sub-${SUBJECT}_task-rest
 
-datalad save -m "Converted subject ${SUBJECT} to BIDS format"
+# datalad save -m "Converted subject ${SUBJECT} to BIDS format"
 echo "Conversion complete for subject ${SUBJECT}"
