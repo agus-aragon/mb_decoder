@@ -423,7 +423,7 @@ class experience_sampling:
 
     def clear_key_buffer(self):
         # Clear buffer from response keys
-        all_keys = event.getKeys(timeStamped=self.clock)
+        all_keys = event.getKeys(timeStamped=self.clock, waitRelease=False)
 
         # Log all scanner volumes
         for key, timestamp in all_keys:
@@ -771,7 +771,7 @@ class experience_sampling:
             visual_probe.draw()
             self.win.flip()
 
-            keys = event.getKeys(["f", "t"], timeStamped=self.clock)
+            keys = event.getKeys(["f", "t"], timeStamped=self.clock, waitRelease=False)
             for key, timestamp in keys:
                 if key == "f":
                     finished = True
