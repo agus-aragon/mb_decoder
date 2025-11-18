@@ -27,5 +27,8 @@ task['prompt_onset'] = task['prompt_onset'] - first_trigger_onset
 # probe_onset - (prompt_onset + arousal_rt + response_rt + rest_duration[+1]) = 2 seconds of difference! always
 # diferencia entre probe y probe deberia ser = rest_duration + response_rt + arousal_rt
 
-# %%
-# BIDS format
+# %% BIDS format
+# onset
+# duration 
+# trial_type
+# response time
