@@ -151,6 +151,16 @@ class resting_state:
         self.experiment_start_time = trigger_times[0]
         self.logger.info(f"T0: {self.experiment_start_time:.6f}")
 
+    def _save_events(self):
+        """Save events to YAML file."""
+        try:
+            sorted_events = sorted(self._events, key=lambda x: x[0])
+            list_events = [list(x) for x in sorted_events]
+            with open(self.eventfile, "w") as f:
+                yaml.dump(list_events, f)
+        except Exception as e:
+            self.logger.error(f"Failed to save events: {e}")
+
     def run_rest(self):
         """Main rest loop - coordinates the overall flow."""
         # Start EEG recording
@@ -173,6 +183,7 @@ class resting_state:
                 print("="*50 + "\n")
                 self.logger.info("10 minutes passed since first scanner trigger")
                 duration_message_shown = True
+
 
             keys = event.getKeys(["f", "t"], timeStamped=self.clock)
             for key, timestamp in keys:
@@ -199,6 +210,7 @@ class resting_state:
                         msg=f"[[{timestamp}]] Volume {self._volume_count} received at {timestamp:.6f} s",
                     )
                     self._volume_count += 1
+                    self._save_events()
             core.wait(0.1)
 
         self.clear_key_buffer()
@@ -210,10 +222,8 @@ class resting_state:
         self.win.close()
 
         # Save events
-        sorted_events = sorted(self._events, key=lambda x: x[0])
-        list_events = [list(x) for x in sorted_events]
-        with open(self.eventfile, "w") as f_exp:
-            yaml.dump(list_events, f_exp)
+        self._save_events()
+
 
         # Copy exp file to subjects folder
         shutil.copy(Path(__file__), self.exp_dir)
