@@ -4,13 +4,14 @@
 ## fMRI/ -> DICOMs + Physio                           ## 
 ## eeg/ -> BrainVision files                          ##
 ## psychopy/ -> behavioral data files                 ##
+## ## ### CONSOLE USAGE: ./src_to_bids.sh 001  ### ## ## 
 ########################################################
 
 #!/bin/bash
 source ~/miniforge3/etc/profile.d/conda.sh
 conda activate mb_decoder
 SUBJECT="$1"  # e.g., 001 (console usage: ./src_to_bids.sh 001)
-SUBJECT_ID_SCANNER = "$2" # e.g., 4472 (from fmriserver)
+SUBJECT_ID_SCANNER="$2" # e.g., 4472 (from fmriserver)
 
 BASE_DIR="/data/project/mb_decoder"
 RAW_DIR="${BASE_DIR}/data/subj_raw"
@@ -21,6 +22,23 @@ echo "Converting sub-${SUBJECT} to BIDS format..."
 ######################## fMRI ########################
 # Convert DICOMs to BIDS using Heudiconv
 echo "Working on fMRI..."
+
+cd "${RAW_DIR}/sub-${SUBJECT}/fMRI/"  
+
+mkdir -p not_used
+mkdir -p physio
+
+# Move physio logs to separate folder
+mv *PhysioLog* physio/ 2>/dev/null || true
+
+# Move sequences that are not used (cotherwise causes issues for heudiconv) 
+mv *RevPE* not_used/ 2>/dev/null || true
+mv *_Pha_* not_used/ 2>/dev/null || true
+mv *StdPE_cmrr*_[0-9]*_MR not_used/ 2>/dev/null || true
+mv localizer* not_used/ 2>/dev/null || true
+mv PhoenixZIP* not_used/ 2>/dev/null || true
+
+
 heudiconv \
   -d "${RAW_DIR}/sub-{subject}/fMRI/*_MR/*.dcm" \
   -o "${BIDS_DIR}" \
@@ -29,14 +47,19 @@ heudiconv \
   -c dcm2niix \
   -b \
   --overwrite
+# TODO: delete AcquisitionTime from json metadata
+
 echo "fMRI conversion complete."
 
 ######################## Pshyio ########################
 #  Convert Physio DICOMs to BIDS using dcm2bidsphysio
 echo "Working on Physio..."
-dcm2bidsphysio --infile "${RAW_DIR}/sub-${SUBJECT}/fMRI/Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_PhysioLog_16_MR/1.dcm" \
+ES_PHYSIO=$(find "${RAW_DIR}/sub-${SUBJECT}/fMRI/physio" -type f -path "*StdPE-70min*PhysioLog*MR/1.dcm" 2>/dev/null | head -n 1)
+REST_PHYSIO=$(find "${RAW_DIR}/sub-${SUBJECT}/fMRI/physio" -type f -path "*StdPE-10min*PhysioLog*MR/1.dcm" 2>/dev/null | head -n 1)
+
+dcm2bidsphysio --infile "$ES_PHYSIO" \
                --bidsprefix "${BIDS_DIR}/sub-${SUBJECT}/func/sub-${SUBJECT}_task-ES"
-dcm2bidsphysio --infile "${RAW_DIR}/sub-${SUBJECT}/fMRI/Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_PhysioLog_12_MR/1.dcm" \
+dcm2bidsphysio --infile "$REST_PHYSIO" \
                --bidsprefix "${BIDS_DIR}/sub-${SUBJECT}/func/sub-${SUBJECT}_task-rest"
 echo "Physio conversion complete."
 

@@ -34,24 +34,24 @@ def infotodict(seqinfo):
 
         # Rest (10min) - series 9, 10, 12
         elif (
-            s.dcm_dir_name == "Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_9_MR"
+            s.dcm_dir_name == "Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_12_MR"
         ):
             info[rest].append(s.series_id)
 
         # Task ES (70min) - series 13, 14, 16
         elif (
-            s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_13_MR"
+            s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_29_MR"
         ):
             info[task_ES].append(s.series_id)
 
         # Field maps - Series 17 has magnitudes
-        elif s.dcm_dir_name == "gre_field_mapping_17_MR":
+        elif s.dcm_dir_name == "gre_field_mapping_35_MR":
             if s.image_type[2] == "M":
                 if len(info[fmap_magnitude]) == 0:
                     info[fmap_magnitude].append(s.series_id)
 
         # Field maps - Series 18 has the phasediff
-        elif s.dcm_dir_name == "gre_field_mapping_18_MR":
+        elif s.dcm_dir_name == "gre_field_mapping_36_MR":
             if s.image_type[2] == "P":
                 info[fmap_phasediff].append(s.series_id)
 
