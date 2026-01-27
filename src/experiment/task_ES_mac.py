@@ -217,7 +217,7 @@ class experience_sampling:
         """Display instructions to the participant."""
         instructions_ES_text = (
             "Before we start, let's remember the instructions.\n\n"
-            "During the task: let your mind wander freely, keep your eyes on the cross (+), and stay still.\n\n"
+            "During the task: let your mind free, keep your eyes on the cross (+), and stay still.\n\n"
             "Press any key to continue (Page 1 of 6)."
         )
         instructions_ES2_text = (
@@ -243,7 +243,7 @@ class experience_sampling:
         )
 
         instructions_readytostart_text = (
-            "Remember: just let your mind wander freely :)\n\n"
+            "Remember: just let your mind free :)\n\n"
             "When you are ready, press any key to begin (Page 6 of 6)."
         )
         instructions_startsoon_text = "The experiment will start in a few seconds :)"

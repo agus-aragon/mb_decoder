@@ -20,7 +20,7 @@ HOME_DIR="/home/agusaragon"
 echo "Converting sub-${SUBJECT} to BIDS format..."
 
 ######################## fMRI ########################
-# Convert DICOMs to BIDS using Heudiconv
+# Convert DICOMs to BIDS cd using Heudiconv
 echo "Working on fMRI..."
 
 cd "${RAW_DIR}/sub-${SUBJECT}/fMRI/"  
