@@ -714,6 +714,7 @@ class experience_sampling:
         # Return trial data
         return {
             "trial_num": trial_num + 1,
+            "trial_start": float(trial_start),
             "probe_onset": probe_time,
             "prompt_onset": prompt_onset,
             "rest_duration": float(trial_duration),

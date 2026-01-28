@@ -1,11 +1,11 @@
-############################################################
-## Start by organizing raw data like:                     ##  
-## /data/project/mb_decoder/data/subj_raw/sub-XXX/        ##
-## fMRI/ -> DICOMs + Physio                               ## 
-## eeg/ -> BrainVision files                              ##
-## psychopy/ -> behavioral data files                     ##
-## ## ### CONSOLE USAGE: ./src_to_bids.sh 001 4472 ### ## ## 
-############################################################
+###############################################################
+## Start by organizing raw data like:                        ##  
+## /data/project/mb_decoder/data/subj_raw/sub-XXX/           ##
+## fMRI/ -> DICOMs + Physio                                  ## 
+## eeg/ -> BrainVision files                                 ##
+## psychopy/ -> behavioral data files                        ##
+## ## ### CONSOLE USAGE: bash src_to_bids.sh 001 4472 ### ## ## 
+###############################################################
 
 #!/bin/bash
 source ~/miniforge3/etc/profile.d/conda.sh
@@ -31,7 +31,7 @@ mkdir -p physio
 # Move physio logs to separate folder
 mv *PhysioLog* physio/ 2>/dev/null || true
 
-# Move sequences that are not used (cotherwise causes issues for heudiconv) 
+# Move sequences that are not used (otherwise causes issues for heudiconv) 
 mv *_Pha_* not_used/ 2>/dev/null || true
 mv localizer* not_used/ 2>/dev/null || true
 mv PhoenixZIP* not_used/ 2>/dev/null || true
@@ -123,7 +123,6 @@ echo "EEG conversion complete."
 
 ######################### Psychopy events ########################
 python "${HOME_DIR}/dev/mb_decoder/src/00_bids/psychopy_to_bids.py" ${SUBJECT} ${RAW_DIR} ${BIDS_DIR}
-#TODO: python script to convert psychopy to BIDS events !!
 
 
 ######################### Add to sourcedata ########################

@@ -1,13 +1,14 @@
 # %% Initialization
 import sys
 import yaml
+import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
 
-subj = '001' #sys.argv[1]
-raw_dir = Path("/data/project/mb_decoder/data/subj_raw")#Path(sys.argv[2])
-bids_dir = Path("/data/project/mb_decoder/data/bids")#Path(sys.argv[3])
+subj = sys.argv[1]# '001' 
+raw_dir = Path(sys.argv[2])#Path("/data/project/mb_decoder/data/dicom/pilots")
+bids_dir = Path(sys.argv[3])#Path("/data/project/mb_decoder/data/bids/pilots")
 datapath = raw_dir / f"sub-{subj}" / "psychopy"
 
 # Load all events file 
@@ -25,11 +26,58 @@ first_trigger_onset = float(events[(events[1] == 'SCANNER') & (events[2] == 0)][
 task['probe_onset'] = task['probe_onset'] - first_trigger_onset
 task['prompt_onset'] = task['prompt_onset'] - first_trigger_onset
 
-# probe_onset - (prompt_onset + arousal_rt + response_rt + rest_duration[+1]) = 2 seconds of difference! always
-# diferencia entre probe y probe deberia ser = rest_duration + response_rt + arousal_rt
+#%% BIDS format
+events_tsv = pd.DataFrame()
+events_tsv['onset'] = task['probe_onset']
+events_tsv['duration'] = 0.0
+events_tsv['trial_type'] = 'probe'
+events_tsv['response_mental_state'] = task['state']
+events_tsv['response_time_mental_state'] = task['response_rt']
+events_tsv['response_arousal'] = task['arousal']
+events_tsv['response_time_arousal'] = task['arousal_rt']
+events_tsv['rest_duration'] = task['rest_duration']
 
-# %% BIDS format
-# onset
-# duration 
-# trial_type
-# response time
+name_tsv = f"sub-{subj}_task-ES_events.tsv"
+
+#%% Create .json with metadata
+events_json = {
+    "onset": {
+        "Description": "Time of probe onset in seconds from first scanner trigger (baseline corrected)",
+        "Units": "s"
+    },
+    "duration": {
+        "Description": "Duration of the probe (beep) presentation.",
+        "Units": "s"
+    },
+    "trial_type": {
+        "Description": "Type of event. Here always 'probe'."
+    },
+    "response_mental_state": {
+        "Description": "Reported mental state at probe (Thought/Blank/Sleep/Sensation)."
+    },
+    "response_time_mental_state": {
+        "Description": "Reaction time for mental state response, from mental-state prompt onset (prompt ocurring miliseconds after probe).",
+        "Units": "s"
+    },
+    "response_arousal": {
+        "Description": "Arousal rating on a 0–100 scale (from 0=very sleepy to 100=very alert)."
+    },
+    "response_time_arousal": {
+        "Description": "Reaction time for arousal rating, from arousal prompt onset.",
+        "Units": "s"
+    },
+    "rest_duration": {
+        "Description": "Rest interval (fixation cross) preceding this probe (interval + jitter).",
+        "Units": "s"
+    }
+}
+name_json = f"sub-{subj}_task-ES_events.json"
+
+#%% Export
+events_path = bids_dir / f"sub-{subj}" / "func" 
+events_path.mkdir(parents=True, exist_ok=True)
+
+with open(events_path / name_json, "w") as f:
+    json.dump(events_json, f, indent=4)
+
+events_tsv.to_csv(events_path / name_tsv, sep="\t", index=False)
