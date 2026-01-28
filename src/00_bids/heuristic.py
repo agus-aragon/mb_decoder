@@ -25,34 +25,37 @@ def infotodict(seqinfo):
     fmap_magnitude = create_key("sub-{subject}/fmap/sub-{subject}_magnitude")
     fmap_phasediff = create_key("sub-{subject}/fmap/sub-{subject}_phasediff")
 
-    info = {t1w: [], rest: [], task_ES: [], fmap_magnitude: [], fmap_phasediff: []}
+    # RevPE
+    revpe_pa = create_key("sub-{subject}/fmap/sub-{subject}_dir-PA_epi")
+    revpe_ap = create_key("sub-{subject}/fmap/sub-{subject}_dir-AP_epi")
+
+    info = {t1w: [], rest: [], task_ES: [], fmap_magnitude: [], fmap_phasediff: [], revpe_pa: [], revpe_ap: []}
 
     for s in seqinfo:
         # T1w
-        if s.dcm_dir_name == "t1_mpr_sag_p2_iso_2_MR":
+        if "t1_mpr_sag_p2_iso" in s.protocol_name:
             info[t1w].append(s.series_id)
 
-        # Rest (10min) - series 9, 10, 12
-        elif (
-            s.dcm_dir_name == "Agustina_StdPE-10min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_12_MR"
-        ):
+        # Rest (10min) 
+        elif "StdPE-10min" in s.protocol_name and "_Pha_" not in s.dcm_dir_name:
             info[rest].append(s.series_id)
 
-        # Task ES (70min) - series 13, 14, 16
-        elif (
-            s.dcm_dir_name == "Agustina_StdPE-70min_cmrr_mb2ep2d_1GE_TR1p5s_3p0mm_29_MR"
-        ):
+        # Task ES (70min) 
+        elif "StdPE-70min" in s.protocol_name and "_Pha_" not in s.dcm_dir_name:
             info[task_ES].append(s.series_id)
 
-        # Field maps - Series 17 has magnitudes
-        elif s.dcm_dir_name == "gre_field_mapping_35_MR":
-            if s.image_type[2] == "M":
-                if len(info[fmap_magnitude]) == 0:
-                    info[fmap_magnitude].append(s.series_id)
-
-        # Field maps - Series 18 has the phasediff
-        elif s.dcm_dir_name == "gre_field_mapping_36_MR":
-            if s.image_type[2] == "P":
+        # GRE Field maps 
+        elif "gre_field_mapping" in s.protocol_name:
+            if s.dim4 == 2:
+                info[fmap_magnitude].append(s.series_id)
+            elif s.dim4 == 1:
                 info[fmap_phasediff].append(s.series_id)
+                
+        # # RevPE 
+        elif "RevPE" in s.protocol_name and "_Pha_" not in s.dcm_dir_name:
+            info[revpe_pa].append(s.series_id)
+        elif "StdPE" in s.protocol_name and "_Pha_" not in s.dcm_dir_name and s.dim4 < 10:
+            info[revpe_ap].append(s.series_id)
+
 
     return info

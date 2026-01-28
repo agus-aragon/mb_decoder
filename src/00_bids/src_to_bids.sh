@@ -1,11 +1,11 @@
-########################################################
-## Start by organizing raw data like:                 ##  
-## /data/project/mb_decoder/data/subj_raw/sub-XXX/    ##
-## fMRI/ -> DICOMs + Physio                           ## 
-## eeg/ -> BrainVision files                          ##
-## psychopy/ -> behavioral data files                 ##
-## ## ### CONSOLE USAGE: ./src_to_bids.sh 001  ### ## ## 
-########################################################
+############################################################
+## Start by organizing raw data like:                     ##  
+## /data/project/mb_decoder/data/subj_raw/sub-XXX/        ##
+## fMRI/ -> DICOMs + Physio                               ## 
+## eeg/ -> BrainVision files                              ##
+## psychopy/ -> behavioral data files                     ##
+## ## ### CONSOLE USAGE: ./src_to_bids.sh 001 4472 ### ## ## 
+############################################################
 
 #!/bin/bash
 source ~/miniforge3/etc/profile.d/conda.sh
@@ -15,7 +15,7 @@ SUBJECT_ID_SCANNER="$2" # e.g., 4472 (from fmriserver)
 
 BASE_DIR="/data/project/mb_decoder"
 RAW_DIR="${BASE_DIR}/data/subj_raw"
-BIDS_DIR="${BASE_DIR}/data/bids/mb_decoder"
+BIDS_DIR="${BASE_DIR}/data/bids/pilots" #mb_decoder
 HOME_DIR="/home/agusaragon"
 echo "Converting sub-${SUBJECT} to BIDS format..."
 
@@ -32,9 +32,7 @@ mkdir -p physio
 mv *PhysioLog* physio/ 2>/dev/null || true
 
 # Move sequences that are not used (cotherwise causes issues for heudiconv) 
-mv *RevPE* not_used/ 2>/dev/null || true
 mv *_Pha_* not_used/ 2>/dev/null || true
-mv *StdPE_cmrr*_[0-9]*_MR not_used/ 2>/dev/null || true
 mv localizer* not_used/ 2>/dev/null || true
 mv PhoenixZIP* not_used/ 2>/dev/null || true
 
@@ -47,7 +45,34 @@ heudiconv \
   -c dcm2niix \
   -b \
   --overwrite
-# TODO: delete AcquisitionTime from json metadata
+
+echo "Finished fMRI DICOM to BIDS conversion. Now patching JSON metadata..."
+python3 << EOF
+import json
+import glob
+import os
+
+bids_subj_dir = "${BIDS_DIR}/sub-${SUBJECT}"
+# List of functional files relative to the subject folder
+func_files = [
+    "func/sub-${SUBJECT}_task-rest_bold.nii.gz",
+    "func/sub-${SUBJECT}_task-ES_bold.nii.gz"
+]
+
+# Find all fmap JSONs (GRE and RevPE)
+fmap_jsons = glob.glob(os.path.join(bids_subj_dir, "fmap", "*.json"))
+
+for j_path in fmap_jsons:
+    with open(j_path, 'r') as f:
+        data = json.load(f)
+    
+    # 1. Add IntendedFor
+    data['IntendedFor'] = func_files
+    
+    with open(j_path, 'w') as f:
+        json.dump(data, f, indent=4)
+    print(f"Patched {os.path.basename(j_path)}")
+EOF
 
 echo "fMRI conversion complete."
 
@@ -98,6 +123,7 @@ echo "EEG conversion complete."
 
 ######################### Psychopy events ########################
 python "${HOME_DIR}/dev/mb_decoder/src/00_bids/psychopy_to_bids.py" ${SUBJECT} ${RAW_DIR} ${BIDS_DIR}
+#TODO: python script to convert psychopy to BIDS events !!
 
 
 ######################### Add to sourcedata ########################
@@ -106,7 +132,7 @@ echo "s0${SUBJECT_ID_SCANNER}, sub-${SUBJECT}" >> "${BASE_DIR}/data/sourcedata/m
 
 ######################### Save to datalad ########################
 # Save changes to datalad
-cd "${BIDS_DIR}"
-echo Saving changes to datalad...
-datalad save -m "Converted subject ${SUBJECT} to BIDS format"
-echo "Conversion to BIDS complete for sub-${SUBJECT}"
+# cd "${BIDS_DIR}"
+# echo Saving changes to datalad...
+# datalad save -m "Converted subject ${SUBJECT} to BIDS format"
+# echo "Conversion to BIDS complete for sub-${SUBJECT}"
