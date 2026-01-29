@@ -41,6 +41,8 @@ name_tsv = f"sub-{subj}_task-ES_events.tsv"
 
 #%% Create .json with metadata
 events_json = {
+    "TaskName": "ES",
+    "TaskDescription": "Experience sampling (ES). Participants were probed (50 times, every 45 s with a ±15 s jitter) to report about their immediate mental content (Thought, Blank, Sleep, Sensations). After each trial, they rated their current arousal levels",
     "onset": {
         "Description": "Time of probe onset in seconds from first scanner trigger (baseline corrected)",
         "Units": "s"
@@ -50,7 +52,7 @@ events_json = {
         "Units": "s"
     },
     "trial_type": {
-        "Description": "Type of event. Here always 'probe'."
+        "Description": "Type of event. Here always 'probe' (visual and auditory stimulus (Exclamation mark “!” 1000 ms + Tone of 1000 Hz at 70 dB for 2 seconds (Van Calster et al., 2017))."
     },
     "response_mental_state": {
         "Description": "Reported mental state at probe (Thought/Blank/Sleep/Sensation)."
