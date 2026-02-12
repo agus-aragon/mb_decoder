@@ -1,0 +1,3 @@
+[submodule "src/external/eeg_cleaner"]
+	path = src/external/eeg_cleaner
+	url = git@github.com:fraimondo/eeg_cleaner.git
