@@ -29,15 +29,15 @@ export TEMPLATEFLOW_HOME="/data/project/mb_decoder/templateflow_cache"
 echo "Initializing script"
 export FREESURFER_HOME="/data/project/tools/juseless_tools/freesurfer_7.4.1"
 source $FREESURFER_HOME/freesurfer.sh
-bids_root_dir=/data/project/mb_decoder/data/bids/mb_decoder/
-output_dir=/data/project/mb_decoder/data/bids/mb_decoder/derivatives/
+bids_root_dir=/data/project/mb_decoder/data/bids/mb_decoder
+output_dir="${bids_root_dir}/derivatives/"
 export FSLOUTPUTTYPE=NIFTI
 cp ~/freesurfer_license.txt /tmp/freesurfer_license.txt
-export FSLDIR="/data/project/tools/juseless_tools/fsl_6.0.4-patched2/"
+export FSLDIR="/data/project/tools/juseless_tools/fsl_6.0.4-patched2"
 source $FSLDIR/fsl.sh
-export ANTSPATH="/data/project/tools/juseless_tools/ants_2.5.0/"
+export ANTSPATH="/data/project/tools/juseless_tools/ants_2.5.0"
 source $ANTSPATH/ants.sh
-export AFNIDIR="/data/project/tools/juseless_tools/afni_24.3.06/afni/"
+export AFNIDIR="/data/project/tools/juseless_tools/afni_24.3.06/afni"
 source $AFNIDIR/afni.sh
 export FS_LICENSE="/tmp/freesurfer_license.txt"
 WORK_DIR="/data/project/mb_decoder/work/fmriprep_work"
@@ -64,7 +64,7 @@ for subj in ${SUBJECT}; do
         --skull-strip-fixed-seed \
         --stop-on-first-crash \
         --fs-no-reconall \
-        --ignore slicetiming \
+        --ignore slicetiming sbref \
         --write-graph \
         --verbose \
         --notrack \

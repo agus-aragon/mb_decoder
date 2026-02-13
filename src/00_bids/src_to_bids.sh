@@ -15,7 +15,7 @@ SUBJECT_ID_SCANNER="$2" # e.g., 4472 (from fmriserver)
 
 BASE_DIR="/data/project/mb_decoder"
 RAW_DIR="${BASE_DIR}/data/subj_raw"
-BIDS_DIR="${BASE_DIR}/data/bids/pilots" #mb_decoder
+BIDS_DIR="${BASE_DIR}/data/bids/mb_decoder" #mb_decoder
 HOME_DIR="/home/agusaragon"
 echo "Converting sub-${SUBJECT} to BIDS format..."
 
@@ -97,6 +97,9 @@ fi
 if [ -e "${BIDS_DIR}/task-rest_bold.json" ]; then
   rm "${BIDS_DIR}/task-rest_bold.json"
 fi
+
+rm "${BIDS_DIR}/sub-${SUBJECT}/func/sub-${SUBJECT}_task-rest_events.tsv" 2>/dev/null || true
+
 echo "fMRI conversion complete."
 
 ######################## Pshyio ########################
@@ -171,8 +174,15 @@ python "${HOME_DIR}/dev/mb_decoder/src/00_bids/psychopy_to_bids.py" ${SUBJECT} $
 
 
 ######################### Add to sourcedata ########################
-echo "s0${SUBJECT_ID_SCANNER}, sub-${SUBJECT}" >> "${BASE_DIR}/data/sourcedata/mapping.csv"
+LINE="s0${SUBJECT_ID_SCANNER}, sub-${SUBJECT}"
+CSV="${BASE_DIR}/data/sourcedata/mapping.csv"
 
+if grep -qFx "$LINE" "$CSV"; then
+    echo "Subject $SUBJECT already mapped (skipped)"
+else
+    echo "$LINE" >> "$CSV"
+    echo "Added mapping for sub-${SUBJECT}"
+fi
 
 ######################### Save to datalad ########################
 # Save changes to datalad

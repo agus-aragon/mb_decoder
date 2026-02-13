@@ -9,7 +9,7 @@ from pathlib import Path
 subj = sys.argv[1]# '001' 
 raw_dir = Path(sys.argv[2])#Path("/data/project/mb_decoder/data/dicom/pilots")
 bids_dir = Path(sys.argv[3])#Path("/data/project/mb_decoder/data/bids/pilots")
-datapath = raw_dir / f"sub-{subj}" / "psychopy"
+datapath = raw_dir / f"sub-{subj}" / "Psychopy"
 
 # Load all events file 
 with open(datapath / "task-ES" / f"sub_{subj}_task-ES_ev.yaml", 'r') as file:

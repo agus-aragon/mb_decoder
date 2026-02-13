@@ -110,16 +110,17 @@ fprintf('BCG artifacts removed in %.2f seconds\n', bcg_time);
 %% Save intermediate processed data and log
 fprintf('Saving processed EEG data...\n');
 EEG = eeg_checkset(EEG);
-output_filename = sprintf('%s_task-%s_desc-fmriClean_eeg.set', subject_id, task_name);
+output_filename = sprintf('%s_task-%s_desc-fmriClean_eeg.edf', subject_id, task_name);
 
 derivatives_path = fullfile(data_path, 'derivatives', subject_id, 'eeg');
 if ~exist(derivatives_path, 'dir')
     mkdir(derivatives_path);
     fprintf('      - Created directory: %s\n', derivatives_path);
 end
-
-EEG = pop_saveset(EEG, 'filename', output_filename, 'filepath', derivatives_path);
-fprintf('Processed data saved as: %s\n', fullfile(derivatives_path, output_filename));
+edf_filename = sprintf('%s_task-%s_desc-fmriClean_eeg.edf', subject_id, task_name);
+edf_fullpath = fullfile(derivatives_path, edf_filename);
+pop_writeeeg(EEG, edf_fullpath, 'TYPE', 'EDF'); 
+fprintf('Processed data saved as: %s\n', edf_fullpath);
 
 diary off;
 fprintf('Log saved to: %s\n', diary_file);
