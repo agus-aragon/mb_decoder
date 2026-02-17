@@ -3,6 +3,7 @@
 ---
 
 **Authors:** Aragón Daud, Agustina; Boulakis, Paradeisios Alexandros; Simos, Nikolaos-Ioannis; Balla, Marion; Raimondo, Federico; Demertzi, Athena
+
 **Contact:** a.aragondaud@uliege.be
 
 ---
@@ -86,4 +87,5 @@ Conda Environment for PsychoPy experiment: `experiment/psychopy_env.yml`
 
 
 [1] Andrillon, T., Lutz, A., Windt, J., & Demertzi, A. (2025). Where is my mind? A neurocognitive investigation of mind blanking. Trends in cognitive sciences, 29(7), 600-613. https://doi.org/10.1016/j.tics.2025.02.002
+
 [2] Boulakis, P. A., & Demertzi, A. (2025). Relating mind-blanking to the content and dynamics of spontaneous thinking. Current Opinion in Behavioral Sciences, 61, 101481. https://doi.org/10.1016/j.cobeha.2024.101481
