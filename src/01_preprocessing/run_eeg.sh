@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Run eeg_preproc_fmri.m for multiple subjects and tasks
-# Usage: ./run_eeg.sh --subject 001 002 --task ES rest
+# Usage: bash run_eeg.sh --subject 001 002 --task ES rest
 
 # ===== CONFIGURATION =====
 MATLAB_SCRIPT="eeg_prepro_fmri.m"
 SCRIPT_DIR="/home/agusaragon/dev/mb_decoder/src/01_preprocessing"
 DATA_PATH="/data/project/mb_decoder/data/bids/mb_decoder/"
 EEGLAB_PATH="/home/agusaragon/dev/eeglab"
-LOG_DIR="${DATA_PATH}derivatives/logs"
+LOG_DIR="${DATA_PATH}derivatives/eeglab_fmriartrem/logs"
 # =========================
 
 # Parse command-line arguments
@@ -132,9 +132,7 @@ for subject in "${SUBJECTS[@]}"; do
         
         # Run MATLAB with all paths as variables
         MATLAB_SCRIPT_FULL="$SCRIPT_DIR/$MATLAB_SCRIPT"
-        matlab -nodisplay -nosplash -nodesktop -r \
-            "cd('$SCRIPT_DIR'); data_path='$DATA_PATH'; eeglab_path='$EEGLAB_PATH'; subject_arg='$subject'; task_arg='$task'; run('$MATLAB_SCRIPT_FULL'); exit" 2>&1
-        
+        matlab -batch "cd('$SCRIPT_DIR'); data_path='$DATA_PATH'; eeglab_path='$EEGLAB_PATH'; subject_arg='$subject'; task_arg='$task'; log_path='$LOG_DIR'; run('$MATLAB_SCRIPT_FULL'); exit" -nodisplay -nosplash -softwareopengl
         if [ $? -ne 0 ]; then
             echo "ERROR: Processing failed for subject $subject, task $task"
             FAILED=$((FAILED + 1))

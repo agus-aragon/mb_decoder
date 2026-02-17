@@ -1,12 +1,16 @@
 # %%
 from pathlib import Path
-
+import sys
+current_dir = Path(__file__).resolve().parent
+external_path = current_dir.parent / "external" / "eeg_cleaner"
+if str(external_path) not in sys.path:
+    sys.path.append(str(external_path))
 import cleaner
 import mne
 
 # %%
 
-db_path = Path("/Users/fraimondo/data/mb_decoder")
+db_path = Path("/data/project/mb_decoder/data/bids/mb_decoder")
 deriv_path = db_path / "derivatives" / "eeg_cleaner"
 
 

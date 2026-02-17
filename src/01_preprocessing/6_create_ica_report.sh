@@ -7,5 +7,5 @@ if [ $# -ne 1 ]; then
     echo "Missing argument: path to databse"
     exit -1
 fi
-
-python "${EEG_CLEANER_PATH}/scripts/scripts/3_clean_ica.py" --path "${1}/derivatives/eeg_cleaner" --ncomps 20
+export PYTHONPATH="${EEG_CLEANER_PATH}:${PYTHONPATH}"
+python "${EEG_CLEANER_PATH}/scripts/3_clean_ica.py" --path "${1}/derivatives/eeg_cleaner" --ncomps 20

@@ -17,6 +17,9 @@ end
 if ~exist('eeglab_path', 'var')
     error('eeglab_path not provided');
 end
+if ~exist('log_path', 'var')
+    error('log_path not provided');
+end
 
 subject_id = sprintf('sub-%s', subject_arg);
 task_name = task_arg;
@@ -28,6 +31,7 @@ fprintf('Task:        %s\n', task_name);
 fprintf('Data path:   %s\n', data_path);
 fprintf('EEGLAB path: %s\n', eeglab_path);
 fprintf('Date:        %s\n', datestr(now));
+fprintf('Log directory: %s\n', log_path);
 fprintf('========================================\n\n');
 drawnow;
 
@@ -42,15 +46,14 @@ input_filename = sprintf('%s_task-%s_eeg.vhdr', subject_id, task_name);
 input_filepath = fullfile(subject_path, input_filename);
 
 %% Log
-log_path = fullfile(data_path, 'derivatives', 'logs');
 if ~exist(log_path, 'dir')
     mkdir(log_path);
     fprintf('Created log directory: %s\n', log_path);
 end
-diary_file = fullfile(log_path, sprintf('log_sub-%s_task-%s_prepro-fmri_.txt', subject_arg, task_arg));
+diary_file = fullfile(log_path, sprintf('log_sub-%s_task-%s_eeglab-fmriartrem.txt', subject_arg, task_arg));
 diary(diary_file);
 diary on;
-fprintf('Logging to: %s\n\n', diary_file);
+fprintf('EEGLAB-fmriartrem (fMRI artifact removal) logging to: %s\n\n', diary_file);
 drawnow;
 
 %% Load EEG data
@@ -110,17 +113,16 @@ fprintf('BCG artifacts removed in %.2f seconds\n', bcg_time);
 %% Save intermediate processed data and log
 fprintf('Saving processed EEG data...\n');
 EEG = eeg_checkset(EEG);
-output_filename = sprintf('%s_task-%s_desc-fmriClean_eeg.edf', subject_id, task_name);
+output_filename = sprintf('%s_task-%s_desc-fmriClean_eeg.set', subject_id, task_name); % Save as .set for easier conversion to .fif
 
-derivatives_path = fullfile(data_path, 'derivatives', subject_id, 'eeg');
+derivatives_path = fullfile(data_path, 'derivatives', 'eeglab_fmriartrem', subject_id, 'eeg');
 if ~exist(derivatives_path, 'dir')
     mkdir(derivatives_path);
     fprintf('      - Created directory: %s\n', derivatives_path);
 end
-edf_filename = sprintf('%s_task-%s_desc-fmriClean_eeg.edf', subject_id, task_name);
-edf_fullpath = fullfile(derivatives_path, edf_filename);
-pop_writeeeg(EEG, edf_fullpath, 'TYPE', 'EDF'); 
-fprintf('Processed data saved as: %s\n', edf_fullpath);
+output_fullpath = fullfile(derivatives_path, output_filename);
+EEG = pop_saveset(EEG, 'filename', output_filename, 'filepath', derivatives_path);
+fprintf('Processed data saved as: %s\n', output_fullpath);
 
 diary off;
 fprintf('Log saved to: %s\n', diary_file);
