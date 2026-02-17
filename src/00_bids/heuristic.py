@@ -51,8 +51,8 @@ def infotodict(seqinfo):
             elif s.dim4 == 1:
                 info[fmap_phasediff].append(s.series_id)
                 
-        # # RevPE 
-        elif "RevPE" in s.protocol_name and "_Pha_" not in s.dcm_dir_name:
+        # # InvPE 
+        elif "InvPE" in s.protocol_name and "_Pha_" not in s.dcm_dir_name:
             info[revpe_pa].append(s.series_id)
         elif "StdPE" in s.protocol_name and "_Pha_" not in s.dcm_dir_name and s.dim4 < 10:
             info[revpe_ap].append(s.series_id)
