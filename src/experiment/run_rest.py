@@ -3,7 +3,7 @@ from psychopy import event, core, visual
 
 
 subject_id = '000'
-parallel = False # Set to True when using EEG-fMRI
+parallel = True # Set to True when using EEG-fMRI
 duration = 10  # duration in minutes
 
 if __name__ == "__main__":

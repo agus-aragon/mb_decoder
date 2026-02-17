@@ -149,7 +149,7 @@ class experience_sampling:
         self._volume_count = 0
         self._events = []
 
-        self.win = visual.Window(size=(1010, 520), units="height", color="white")
+        self.win = visual.Window(size=(1010, 520), units="height", color="#DCDCDC") 
         self.clock = core.Clock()
         self.logger = self.configure_logger()
         self.cross = self.draw_cross()
