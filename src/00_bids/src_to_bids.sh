@@ -57,6 +57,24 @@ func_files_json=$(cat <<EOF
 EOF
 )
 
+PEPOLAR_ID="pepolar-${SUBJECT}"
+for j_path in "${BIDS_DIR}/sub-${SUBJECT}"/fmap/sub-"${SUBJECT}"_dir-*_epi.json; do
+  [ -e "$j_path" ] || continue
+  tmp=$(mktemp)
+  jq --arg id "$PEPOLAR_ID" '.B0FieldIdentifier = $id' "$j_path" > "$tmp"
+  mv "$tmp" "$j_path"
+  echo "Tagged PEPOLAR $(basename "$j_path") with B0FieldIdentifier: $PEPOLAR_ID"
+done
+
+GRE_ID="gre-${SUBJECT}"
+for j_path in "${BIDS_DIR}/sub-${SUBJECT}"/fmap/sub-"${SUBJECT}"_{magnitude*,phasediff}.json; do
+  [ -e "$j_path" ] || continue
+  tmp=$(mktemp)
+  jq --arg id "$GRE_ID" '.B0FieldIdentifier = $id' "$j_path" > "$tmp"
+  mv "$tmp" "$j_path"
+  echo "Tagged GRE $(basename "$j_path") with B0FieldIdentifier: $GRE_ID"
+done
+
 for j_path in "${BIDS_DIR}/sub-${SUBJECT}"/fmap/sub-"${SUBJECT}"_*.json; do
   [ -e "$j_path" ] || continue
   tmp=$(mktemp)

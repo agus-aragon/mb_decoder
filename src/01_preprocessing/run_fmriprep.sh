@@ -29,7 +29,7 @@ export TEMPLATEFLOW_HOME="/data/project/mb_decoder/templateflow_cache"
 echo "Initializing script"
 export FREESURFER_HOME="/data/project/tools/juseless_tools/freesurfer_7.4.1"
 source $FREESURFER_HOME/freesurfer.sh
-bids_root_dir=/data/project/mb_decoder/data/bids/pilots
+bids_root_dir=/data/project/mb_decoder/data/bids/mb_decoder
 output_dir="${bids_root_dir}/derivatives/fmriprep/"
 export FSLOUTPUTTYPE=NIFTI
 cp ~/freesurfer_license.txt /tmp/freesurfer_license.txt
@@ -45,8 +45,8 @@ mkdir -p "$WORK_DIR"
 
 source /data/project/tools/juseless_tools/fmriprep_24.1.1/fmriprep.sh
 
-# for subj in $(ls $bids_root_dir | grep "^sub"); do
-for subj in ${SUBJECT}; do
+for subj in $(ls $bids_root_dir | grep "^sub"); do
+# for subj in ${SUBJECT}; do
 
     echo "Running fMRIPrep for subject: $subj"
     
