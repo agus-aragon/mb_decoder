@@ -61,7 +61,28 @@ Conda Environment for PsychoPy experiment: `experiment/psychopy_env.yml`
 🚧 Further analysis to be uploaded
 ---
 
-## 
+## Code Execution
+**1) Convert RAW to BIDS:** `bash src_to_bids.sh XXX YYYY` (where XXX is subject ID in BIDS format and YYYY is MRI scanner id (e.g, 4540)
+
+**2) Preprocess fMRI:** could be run as `bash src_to_bids.sh XXX` (where XXX is subject ID in BIDS format, line 49 uncommented) or `bash src_to_bids.sh` (if line 48 is uncommented and 49 is commented)
+**3) Preprocess EEG:
+
+   (3.1) Clean MRI-related artifacts:`bash run_eeg.sh --subject XXX XXX --task ES rest` (it can run as many subjects as specificied)
+   
+   (3.2) Convert to fif: `python 1_convert_to_fif.py`
+   
+   (3.3) Pick bad channels (manual selection): `bash 2_pick_bad_chs.sh /data/project/mb_decoder/data/bids/mb_decoder` (manually select bad channels in pop-up window)
+   
+   (3.4) Cut in epochs: `python 3_cut_epochs.py`
+   
+   (3.5) Pick bad epochs (manual selection): `bash 4_pick_bad_epochs.sh /data/project/mb_decoder/data/bids/mb_decoder` (manually selected bad epochs in pop-up window)
+   
+   (3.6) Run ICA: `python 5_run_ica.py`
+   
+   (3.7) Create ICA report (manual selection): `bash 6_create_ica_report.sh` (open report and choose components to remove, then save the information in the .json)
+   
+   (3.8) Apply ICA: `python 8_apply_ica.py`
+   
 
 ---
 
