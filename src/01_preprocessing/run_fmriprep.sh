@@ -45,8 +45,8 @@ mkdir -p "$WORK_DIR"
 
 source /data/project/tools/juseless_tools/fmriprep_24.1.1/fmriprep.sh
 
-for subj in $(ls $bids_root_dir | grep "^sub"); do
-# for subj in ${SUBJECT}; do
+#for subj in $(ls $bids_root_dir | grep "^sub"); do
+for subj in ${SUBJECT}; do
 
     echo "Running fMRIPrep for subject: $subj"
     
