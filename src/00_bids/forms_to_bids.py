@@ -9,7 +9,7 @@ import json
 
 pd.set_option("future.no_silent_downcasting", True)
 datapath = Path("/Users/agusaragon/Downloads/") #/data/project/mb_decoder/data/subj_raw
-bids_path = datapath.parent() / "bids" / "mb_decoder"
+bids_path = datapath.parent / "bids" / "mb_decoder"
 
 # Function for unifying format (remove french accents)
 def remove_accents(text):
@@ -213,6 +213,7 @@ ESS_cols = [col for col in forms.columns if col.startswith("ESS_")]
 forms[ESS_cols] = forms[ESS_cols].replace(ESS_mapping).astype("Int64")
 forms["ESS_score"] = forms[ESS_cols].sum(axis=1)
 
+
 forms.to_csv(bids_path / "participants.tsv", sep="\t", index=False)
 
 # %% Participants.json with metadata for each column in participants.tsv
@@ -328,7 +329,7 @@ participants_json = {
         "Levels": {
             1: "Yes, a change",
             0: "No, no change",
-            pd.NA: "N/A, Don't know"
+            "NA": "N/A, Don't know"
         }
     },
     "AD8_2":{
@@ -337,7 +338,7 @@ participants_json = {
         "Levels": {
             1: "Yes, a change",
             0: "No, no change",
-            pd.NA: "N/A, Don't know"
+            "NA": "N/A, Don't know"
         }
     },
     "AD8_3":{
@@ -346,7 +347,7 @@ participants_json = {
         "Levels": {
             1: "Yes, a change",
             0: "No, no change",
-            pd.NA: "N/A, Don't know"
+            "NA": "N/A, Don't know"
         }
     },
     "AD8_4":{
@@ -355,7 +356,7 @@ participants_json = {
         "Levels": {
             1: "Yes, a change",
             0: "No, no change",
-            pd.NA: "N/A, Don't know"
+            "NA": "N/A, Don't know"
         }
     },
     "AD8_5":{
@@ -364,7 +365,7 @@ participants_json = {
         "Levels": {
             1: "Yes, a change",
             0: "No, no change",
-            pd.NA: "N/A, Don't know"
+            "NA": "N/A, Don't know"
         }
     },
     "AD8_6":{
@@ -373,7 +374,7 @@ participants_json = {
         "Levels": {
             1: "Yes, a change",
             0: "No, no change",
-            pd.NA: "N/A, Don't know"
+            "NA": "N/A, Don't know"
         }
     },
     "AD8_7":{
@@ -382,7 +383,7 @@ participants_json = {
         "Levels": {
             1: "Yes, a change",
             0: "No, no change",
-            pd.NA: "N/A, Don't know"
+            "NA": "N/A, Don't know"
         }
     },
     "AD8_8":{
@@ -391,7 +392,7 @@ participants_json = {
         "Levels": {
             1: "Yes, a change",
             0: "No, no change",
-            pd.NA: "N/A, Don't know"
+            "NA": "N/A, Don't know"
         }
     },
     "SRMBQ_1": {
@@ -1156,7 +1157,7 @@ participants_json = {
         "LongName": "Epworth Sleepiness Scale item 1",
         "Description": "Sitting and reading",
         "Levels": {
-            0: "Would never nod off,
+            0: "Would never nod off",
             1: "Slight chance of nodding off",
             2: "Moderate chance of nodding off",
             3: "High chance of nodding off"
@@ -1166,7 +1167,7 @@ participants_json = {
         "LongName": "Epworth Sleepiness Scale item 2",
         "Description": "Watching TV",
         "Levels": {
-            0: "Would never nod off,
+            0: "Would never nod off",
             1: "Slight chance of nodding off",
             2: "Moderate chance of nodding off",
             3: "High chance of nodding off"
@@ -1237,3 +1238,5 @@ participants_json = {
 # Save .json
 with open(bids_path / "participants.json", "w") as f:
     json.dump(participants_json, f, indent=4)
+
+# %%
