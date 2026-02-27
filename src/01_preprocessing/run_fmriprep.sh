@@ -45,9 +45,16 @@ mkdir -p "$WORK_DIR"
 
 source /data/project/tools/juseless_tools/fmriprep_24.1.1/fmriprep.sh
 
-#for subj in $(ls $bids_root_dir | grep "^sub"); do
-for subj in ${SUBJECT}; do
-
+for subj in $(ls $bids_root_dir | grep "^sub"); do
+#for subj in ${SUBJECT}; do
+    subj_id="${subj#sub-}" 
+    output_path="$output_dir/sub-${subj_id}"
+    
+    if [ -d "$output_path" ]; then
+        echo "Skipping $subj - output already exists: $output_path"
+        continue
+    fi
+    
     echo "Running fMRIPrep for subject: $subj"
     
     fmriprep $bids_root_dir $output_dir \
