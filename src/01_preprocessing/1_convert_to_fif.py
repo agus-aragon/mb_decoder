@@ -10,6 +10,9 @@ deriv_path.mkdir(parents=True, exist_ok=True)
 # %%
 for raw_file in db_path.glob("**/*.set"):
     out_fname = deriv_path / raw_file.relative_to(db_path).with_suffix(".fif")
+    if out_fname.exists():
+        print(f"Subject {raw_file.parent.parent.name} file already exists - Skipping  // {out_fname}. ")
+        continue
     out_fname.parent.mkdir(parents=True, exist_ok=True)
     print(f"Reading {raw_file} ...   ")
     raw = mne.io.read_raw_eeglab(raw_file, preload=True)
