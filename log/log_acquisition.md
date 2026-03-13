@@ -7,6 +7,22 @@ This is a log file of the acquisitions, speficially of the EEG-fMRI session. It 
 
 It also cointains the date of the acquisition, the interal ID (CRC participant's log book), and the temperatures reached by the first column (located "more" on the inside of the MR) of amplifiers (2 BrainAmps MR + 1 PowerPack). 
 
+
+---
+## sub-008
+Date: 13/03/2026
+
+CRC ID: 1602
+
+### EEG
+Ok
+
+#### Amplifiers Temperature:
+Order from top to bottom: Amp 6023 -> 47 C (channels #1) / PowerPack 41 C / Amp 9224 -> 46 C (channels #2)
+
+### fMRI
+T1 was repeated because participant move significantly during the first run. Thus, run 1 of the T1 should be used for preprocessing/analysis (t1_mpr_sag_p2_iso_2_)
+
 ---
 ## sub-007
 Date: 11/03/2026
