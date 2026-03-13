@@ -10,6 +10,7 @@ It also cointains the date of the acquisition, the interal ID (CRC participant's
 ---
 ## sub-007
 Date: 11/03/2026
+
 CRC ID: 1598
 
 ### EEG
@@ -24,6 +25,7 @@ Ok
 ---
 ## sub-006
 Date: 10/03/2026
+
 CRC ID: 4595
 
 ### EEG
@@ -39,6 +41,7 @@ Ok
 ---
 ## sub-005
 Date: 06/03/2026
+
 CRC ID: 4588
 
 ### EEG
@@ -54,6 +57,7 @@ Ok
 ---
 ## sub-004
 Date: 03/03/2026
+
 CRC ID: 4578
 
 ### EEG
@@ -68,6 +72,7 @@ Ok
 ----------
 ## sub-003
 Date: 20/02/2026
+
 CRC ID: 4561
 
 ### EEG
@@ -88,6 +93,7 @@ Gre Field Map was acquired after entering the MRI room to check for the EEG devi
 ----------
 ## sub-002
 Date: 11/02/2026
+
 CRC ID: 4540
 
 ### EEG
@@ -103,6 +109,7 @@ Ok
 ----------
 ## sub-001
 Date: 10/02/2026
+
 CRC ID: 4539
 
 ### EEG
