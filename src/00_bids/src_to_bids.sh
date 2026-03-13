@@ -19,6 +19,12 @@ BIDS_DIR="${BASE_DIR}/data/bids/mb_decoder" #mb_decoder
 HOME_DIR="/home/agusaragon"
 echo "Converting sub-${SUBJECT} to BIDS format..."
 
+# Abort if subject already exists in BIDS (in case of potential mistake)
+if [ -d "${BIDS_DIR}/sub-${SUBJECT}" ]; then
+  echo "ERROR: ${BIDS_DIR}/sub-${SUBJECT} already exists. Aborting to avoid overwrite."
+  exit 1
+fi
+
 ######################## fMRI ########################
 # Convert DICOMs to BIDS cd using Heudiconv
 echo "Working on fMRI..."

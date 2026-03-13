@@ -78,8 +78,8 @@ for raw_file in deriv_path.glob("**/*_eeg.fif"):
         )
     else:
         raise NotImplementedError(f"Task {task} not implemented yet")
-        #TODO: cut task-ES data into epochs based on probes/responses
-               # Check Andrillon 2021, Munoz-Musat 2025 & Boulakis 2025, among others
+
+
     # Save the epochs
     out_fname = raw_file.with_stem(f"{raw_file.stem}_epo")
     epochs.save(out_fname, overwrite=True)

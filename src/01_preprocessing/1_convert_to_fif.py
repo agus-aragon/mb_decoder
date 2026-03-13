@@ -1,6 +1,7 @@
 # %%
 from pathlib import Path
 import mne
+import pandas as pd
 # %%
 
 db_path = Path("/data/project/mb_decoder/data/bids/mb_decoder/derivatives/eeglab_fmriartrem")
@@ -21,7 +22,63 @@ for raw_file in db_path.glob("**/*.set"):
 
     montage = mne.channels.make_standard_montage("brainproducts-RNP-BA-128")
     raw.set_montage(montage)
+
+    # Modify events for task-ES
+    if "task-ES" in raw_file.parts:
+        psychopy_path = raw_file.parent.parent.parent.parent.parent / raw_file.parent.parent.name / "func" / f"{raw_file.parent.parent.name}_task-ES_events.tsv"
+        psychopy = pd.read_csv(psychopy_path, sep="\t")
+    events, event_id = mne.events_from_annotations(raw)
+    sfreq = raw.info['sfreq']
+    seconds = events[:, 0] / sfreq
+
+    # Create DataFrame
+    df = pd.DataFrame({
+        'sample': events[:, 0],
+        'seconds': seconds,
+        'previous_sample': events[:, 1],  # Usually 0 for annotations
+        'event_id': events[:, 2]
+    })
+
+    # Map numeric event codes to descriptions (optional)
+    df['description'] = df['event_id'].map({v: k for k, v in event_id.items()})
+
+
     print(f"Saving to FIF format in {out_fname}...   ")
     raw.save(out_fname, overwrite=True)
 
 # %%
+# %%
+for raw_file in db_path.glob("**/*.set"):
+    if "task-ES" in raw_file.name or "task-ES" in str(raw_file):
+
+
+        print(f"Reading {raw_file} ...   ")
+
+
+        raw = mne.io.read_raw_eeglab(raw_file, preload=True)
+
+        raw.drop_channels(['65', '66', '67', '68']) # Get rid of CWL
+
+        montage = mne.channels.make_standard_montage("brainproducts-RNP-BA-128")
+        raw.set_montage(montage)
+
+        
+        events, event_id = mne.events_from_annotations(raw)
+        sfreq = raw.info['sfreq']
+        seconds = events[:, 0] / sfreq
+
+        # Crteate DataFrame
+        df = pd.DataFrame({
+            'sample': events[:, 0],
+            'seconds': seconds,
+            'previous_sample': events[:, 1],  # Usually 0 for annotations
+            'event_id': events[:, 2]
+        })
+
+        # Map numeric event codes to descriptions (optional)
+        df['description'] = df['event_id'].map({v: k for k, v in event_id.items()})
+        print(f'---------- {raw_file.parent.parent.name}')
+        print(df['description'].value_counts())
+
+
+

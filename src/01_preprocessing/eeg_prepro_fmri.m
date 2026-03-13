@@ -87,9 +87,19 @@ fprintf('      - Removing %.2f seconds of pre-scan data\n', first_scanner_time);
 drawnow;
 
 % Trim data: keep from first Scanner trigger to end
-cut_time = max(0, first_scanner_time - 0.001); % small offset to avoid cutting exactly at event
+
+cut_time = first_scanner_time; 
 EEG = pop_select(EEG, 'time', [cut_time EEG.xmax]);
 EEG = eeg_checkset(EEG);
+if strcmp(EEG.event(1).type, 'boundary')
+    EEG.event(1).type = 'Scanner';
+    fprintf('Replaced boundary event with Scanner ✓\n');
+else
+    fprintf('No boundary event found\n');
+end
+EEG = eeg_checkset(EEG);
+
+fprintf('Added Scanner event at t=0 (sample 1)\n');
 fprintf('      - New duration: %.2f seconds\n', EEG.pnts/EEG.srate);
 fprintf('      - New samples: %d\n', EEG.pnts);
 drawnow;
