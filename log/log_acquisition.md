@@ -7,6 +7,39 @@ This is a log file of the acquisitions, speficially of the EEG-fMRI session. It 
 
 It also cointains the date of the acquisition, the interal ID (CRC participant's log book), and the temperatures reached by the first column (located "more" on the inside of the MR) of amplifiers (2 BrainAmps MR + 1 PowerPack). 
 
+*TODO*: once all subjects are acquired, modify `participants.tsv` age based on the one reported at the Questionnaire. The one that is retrieved from `dcm2niix` comes from the MRI and the age of participant is calculated based on date of birth, which internally is coded as day/month of acquisition + year participant was born. So if they birthday is after the date of the acquisition there age has a error of +1
+
+---
+## sub-010
+Date: 17/03/2026
+
+CRC ID: 1604
+
+### EEG
+Ok
+After finishing and saving task-ES, we recieved an error "Amplifier 2 Out of synch, Barker words missing!". It did not affect any of our recordings (it happened afterwards).
+
+#### Amplifiers Temperature:
+Order from top to bottom: Amp 9224 -> xx C (channels #1) / PowerPack xx C / Amp 6023 -> xx C (channels #2)
+
+### fMRI
+Ok
+
+---
+## sub-009
+Date: 16/03/2026
+
+CRC ID: 1603
+
+### EEG
+EEG disconnected at trial 47 out of 50 of task-ES ("connection between Brainamp and USB2 Adapter / PCI is broken").
+
+
+#### Amplifiers Temperature:
+Order from top to bottom: Amp 6023 -> 57 C (channels #1) / PowerPack 43 C / Amp 9224 -> 60 C (channels #2)
+
+### fMRI
+Ok
 
 ---
 ## sub-008
@@ -21,7 +54,7 @@ Ok
 Order from top to bottom: Amp 6023 -> 47 C (channels #1) / PowerPack 41 C / Amp 9224 -> 46 C (channels #2)
 
 ### fMRI
-T1 was repeated because participant move significantly during the first run. Thus, run 1 of the T1 should be used for preprocessing/analysis (t1_mpr_sag_p2_iso_2_)
+T1 was repeated because participant move significantly during the first run. Thus, run 1 of the T1 should be used for preprocessing/analysis (t1_mpr_sag_p2_iso_2_21_MR)
 
 ---
 ## sub-007

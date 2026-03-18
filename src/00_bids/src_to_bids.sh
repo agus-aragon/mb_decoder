@@ -3,7 +3,7 @@
 ## /data/project/mb_decoder/data/subj_raw/sub-XXX/           ##
 ## fMRI/ -> DICOMs + Physio                                  ## 
 ## eeg/ -> BrainVision files (lowcase)                       ##
-## psychopy/ -> behavioral data files                        ##
+## Psychopy/ -> behavioral data files                        ##
 ## ## ### CONSOLE USAGE: bash src_to_bids.sh 001 4472 ### ## ## 
 ###############################################################
 
@@ -24,6 +24,23 @@ if [ -d "${BIDS_DIR}/sub-${SUBJECT}" ]; then
   echo "ERROR: ${BIDS_DIR}/sub-${SUBJECT} already exists. Aborting to avoid overwrite."
   exit 1
 fi
+
+# Check that the three folders (fMRI, eeg, Psychopy) are named correctly before running script
+SUB_RAW_DIR="${RAW_DIR}/sub-${SUBJECT}"
+if [ ! -d "${SUB_RAW_DIR}/fMRI" ]; then
+  echo "ERROR: Missing ${SUB_RAW_DIR}/fMRI/ folder. Aborting."
+  exit 1
+fi
+if [ ! -d "${SUB_RAW_DIR}/eeg" ]; then
+  echo "ERROR: Missing ${SUB_RAW_DIR}/eeg/ folder (must be lowercase). Aborting."
+  exit 1
+fi
+if [ ! -d "${SUB_RAW_DIR}/Psychopy" ]; then
+  echo "ERROR: Missing ${SUB_RAW_DIR}/Psychopy/ folder. Aborting."
+  exit 1
+fi
+echo "All required folders (fMRI/, eeg/, Psychopy/) found for sub-${SUBJECT}"
+
 
 ######################## fMRI ########################
 # Convert DICOMs to BIDS cd using Heudiconv
@@ -192,7 +209,7 @@ fi
 
 ######################### Save to datalad ########################
 # Save changes to datalad
-# cd "${BIDS_DIR}"
-# echo Saving changes to datalad...
-# datalad save -m "Converted subject ${SUBJECT} to BIDS format"
-# echo "Conversion to BIDS complete for sub-${SUBJECT}"
+cd "${BIDS_DIR}"
+echo Saving changes to datalad...
+datalad save -m "Converted subject ${SUBJECT} to BIDS format"
+echo "Conversion to BIDS complete for sub-${SUBJECT}"
