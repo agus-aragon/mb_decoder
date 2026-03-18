@@ -1,6 +1,5 @@
 # %%
 import os
-
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -15,18 +14,19 @@ bids_path = datapath.parent / "bids" / "mb_decoder"
 def remove_accents(text):
     if pd.isna(text):
         return text
-    text = str(text).strip()
+    text = str(text).strip().replace('?', '')  # Clean first
     nfkd = unicodedata.normalize("NFKD", text)
     return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
-# %% Load & clean forms data
+
+    # %% Load & clean forms data
 forms = pd.read_csv(
     datapath / "questionnaires_subjects(joined).csv",
     encoding="windows-1252",
     sep=";",
 )
-
+forms = forms.iloc[:, :160]
 string_cols = forms.select_dtypes(include=["object", "string"]).columns
 forms[string_cols] = forms[string_cols].apply(
     lambda col: col.map(remove_accents)
@@ -199,20 +199,34 @@ forms["ACS_subscore_shift"] = forms[
 
 
 ## ESS
-ESS_mapping = {
-    "Would never nod off": 0,
-    "Slight chance of nodding off": 1,
-    "Moderate chance of nodding off": 2,
-    "High chance of nodding off": 3,
-    "Aucune chance de somnoler ou de s’endormir": 0,
-    "Faible chance de s’endormir": 1,
-    "Chance moyenne de s’endormir": 2,
-    "Forte chance de s’endormir": 3
-}
 ESS_cols = [col for col in forms.columns if col.startswith("ESS_")]
+
+for col in ESS_cols:
+    forms[col] = (forms[col]
+                  .astype(str).str.strip()
+                  .str.replace('change', 'chance', regex=False)
+                  .str.replace("'", '', regex=True)
+                  .str.replace('’', '', regex=True)  # Curly apostrophe
+                  .str.replace('`', '', regex=True)
+                  .str.replace('´', '', regex=True)
+                  .str.replace(r'\s+', '', regex=True))  # Remove ALL spaces
+ESS_mapping = {
+    "Wouldnevernodoff": 0,
+    "Slightchanceofnoddingoff": 1,
+    "Moderatechanceofnoddingoff": 2,
+    "Highchanceofnoddingoff": 3,
+    "Aucunechancedesomnoleroudesendormir": 0,
+    "Faiblechancedesendormir": 1,
+    "Chancemoyennedesendormir": 2,
+    "Fortechancedesendormir": 3
+}
+
 forms[ESS_cols] = forms[ESS_cols].replace(ESS_mapping).astype("Int64")
 forms["ESS_score"] = forms[ESS_cols].sum(axis=1)
 
+## ARSQ
+
+# TODO: https://pmc.ncbi.nlm.nih.gov/articles/PMC3737475/
 
 forms.to_csv(bids_path / "participants.tsv", sep="\t", index=False)
 
@@ -1232,7 +1246,62 @@ participants_json = {
             2: "Moderate chance of nodding off",
             3: "High chance of nodding off"
         }
-    }
+    },
+    "hour_acquisition":{
+        "Description": "Hour of the date that the MRI-EEG acquisition started (24 hr format)"
+    },
+    "confidence_thought":{
+        "LongName": "How confident were you when you reported... Thought"
+        "Levels": {
+            0: "Not confident at all",
+            1: "Slightly confident",
+            2: "Neutral",
+            3: "Confident",
+            4: "Very confident",
+            "NR":"I did not report it"
+        }
+    },
+    "confidence_blank":{
+        "LongName": "How confident were you when you reported... Blank"
+        "Levels": {
+            0: "Not confident at all",
+            1: "Slightly confident",
+            2: "Neutral",
+            3: "Confident",
+            4: "Very confident",
+            "NR":"I did not report it"
+        }
+    },
+    "confidence_sleep":{
+        "LongName": "How confident were you when you reported... Asleep"
+        "Levels": {
+            0: "Not confident at all",
+            1: "Slightly confident",
+            2: "Neutral",
+            3: "Confident",
+            4: "Very confident",
+            "NR":"I did not report it"
+        }
+    },
+    "confidence_sensations":{
+        "LongName": "How confident were you when you reported... Sensations"
+        "Levels": {
+            0: "Not confident at all",
+            1: "Slightly confident",
+            2: "Neutral",
+            3: "Confident",
+            4: "Very confident",
+            "NR":"I did not report it"
+        }
+    },
+    "ARSQ_1":{
+        "LongName":"Amsterdam Resting-State Questionnaire Item 1"
+        "Description": "##Item",
+        "Levels":{},
+    },
+    ## TODO: add ARSQ
+    ##########################################
+    #TODO: hours sleep, stress, SCORES, subscores
 }
 
 # Save .json

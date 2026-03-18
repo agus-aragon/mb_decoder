@@ -236,4 +236,5 @@ rsconnect/
 /results/
 
 junifer_jobs
-.vscode/
+.vscode/.DS_Store
+**/.DS_Store
