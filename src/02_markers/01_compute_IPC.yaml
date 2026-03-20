@@ -1,0 +1,86 @@
+####
+# INPUT:
+#   1. datadir: Path with fMRIPrep derivatives
+#   2. patterns: files including preprocessed BOLD, brain mask, confounds, 
+#                boldref and CSF.
+#   3. uri: Path to store IPC features
+#
+# DESCRIPTION:
+# This script performs the following steps:
+#   - Confound removal using fMRIPrep confounds
+#   - Instant Phase Connectivity (IPC) computation using Schaefer parcellation
+#   - Storage of IPC features for pMB Task in HDF5 forma
+#
+# OUTPUT:
+#   - IPC features stored in HDF5 format at the specified uri
+# Execute as: junifer run 01_compute_fc.yaml
+###
+
+
+workdir: /tmp
+with: juni_farm
+
+datagrabber:
+  kind: PatternDataGrabber
+  datadir: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/fmriprep
+  patterns:
+    BOLD:
+      pattern: "{subject}/func/{subject}_task-rest_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz"
+      space: "MNI152NLin2009cAsym"
+      mask:
+        pattern: "{subject}/func/{subject}_task-rest_space-MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz"
+        space: "MNI152NLin2009cAsym"
+      confounds:
+        pattern: "{subject}/func/{subject}_task-rest_desc-confounds_timeseries.tsv"
+        format: "fmriprep"
+      reference:
+        pattern: "{subject}/func/{subject}_task-rest_space-MNI152NLin2009cAsym_res-2_boldref.nii.gz"
+    VBM_GM:
+      pattern: "{subject}/anat/{subject}_space-MNI152NLin2009cAsym_res-2_label-CSF_probseg.nii.gz"
+      space: "MNI152NLin2009cAsym"
+  replacements:
+    - subject
+  types:
+    - BOLD
+    - VBM_GM
+
+preprocess:
+  - kind: fMRIPrepConfoundRemover
+    detrend: true
+    standardize: true
+    strategy:
+        motion: full
+        wm_csf: full
+    low_pass: 0.09
+    high_pass: 0.008
+    t_r: 1.5
+    masks:
+      - compute_brain_mask:
+          threshold: 0.2
+          mask_type: gm
+          source: subject
+
+markers:
+  - name: IPC_Schaefer
+    kind: InstantPhaseConnectivityParcels
+    parcellation: Schaefer100x7
+    highpass: 0.01
+    lowpass: 0.04
+    order: 2
+    masks:
+      - inherit
+storage:
+  kind: HDF5FeatureStorage
+  uri: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC/task-rest/IPC_task-rest_all.hdf5 # TODO it is not collecting them
+
+queue:
+  jobname: MBDecoder_IPC_task-rest
+  kind: GNUParallelLocal
+  env:
+    kind: conda
+    name: junifer_env
+    shell: zsh
+  pre_run: |
+    source /data/project/tools/juseless_tools/afni_24.3.06/afni.sh
+    source /data/project/tools/juseless_tools/ants_2.5.0/ants.sh
+    source /data/project/tools/juseless_tools/fsl_6.0.4-patched2/fsl.sh

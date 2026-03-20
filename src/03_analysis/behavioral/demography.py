@@ -29,7 +29,7 @@ sns.histplot(
     data=df,
     x="age",
     kde=True,
-    bins=10,
+    bins=5,
     ax=axes[1],
     color="lightblue",
     edgecolor="black",
