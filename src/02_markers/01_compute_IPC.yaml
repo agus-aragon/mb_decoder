@@ -25,21 +25,22 @@ datagrabber:
   datadir: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/fmriprep
   patterns:
     BOLD:
-      pattern: "{subject}/func/{subject}_task-rest_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz"
+      pattern: "{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz"
       space: "MNI152NLin2009cAsym"
       mask:
-        pattern: "{subject}/func/{subject}_task-rest_space-MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz"
+        pattern: "{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz"
         space: "MNI152NLin2009cAsym"
       confounds:
-        pattern: "{subject}/func/{subject}_task-rest_desc-confounds_timeseries.tsv"
+        pattern: "{subject}/func/{subject}_task-{task}_desc-confounds_timeseries.tsv"
         format: "fmriprep"
       reference:
-        pattern: "{subject}/func/{subject}_task-rest_space-MNI152NLin2009cAsym_res-2_boldref.nii.gz"
+        pattern: "{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_boldref.nii.gz"
     VBM_GM:
       pattern: "{subject}/anat/{subject}_space-MNI152NLin2009cAsym_res-2_label-CSF_probseg.nii.gz"
       space: "MNI152NLin2009cAsym"
   replacements:
     - subject
+    - task
   types:
     - BOLD
     - VBM_GM
@@ -63,7 +64,9 @@ preprocess:
 markers:
   - name: IPC_Schaefer
     kind: InstantPhaseConnectivityParcels
-    parcellation: Schaefer100x7
+    parcellation: 
+      - Schaefer100x7
+      - TianxS1x3TxMNI6thgeneration
     highpass: 0.01
     lowpass: 0.04
     order: 2
@@ -71,10 +74,10 @@ markers:
       - inherit
 storage:
   kind: HDF5FeatureStorage
-  uri: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC/task-rest/IPC_task-rest_all.hdf5 # TODO it is not collecting them
+  uri: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC/task-{task}/IPC_task-{task}_all.hdf5 # TODO it is not collecting them
 
 queue:
-  jobname: MBDecoder_IPC_task-rest
+  jobname: MBDecoder_IPC
   kind: GNUParallelLocal
   env:
     kind: conda
