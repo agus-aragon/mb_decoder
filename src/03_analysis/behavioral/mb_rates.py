@@ -27,11 +27,25 @@ for events_file in db_path.glob("**/func/*_task-ES_events.tsv"):
 events_df = pd.concat(all_events, ignore_index=True)
 
 # %% Frequency of each response per subject (% of out 50 probes)
+states = ["Blank", "Sleep", "Thought", "Sensation"]
+
 response_counts = (
     events_df.groupby(["subject", "response_mental_state"])
     .size()
     .reset_index(name="count")
 )
+
+all_pairs = pd.MultiIndex.from_product(
+    [events_df["subject"].unique(), states],
+    names=["subject", "response_mental_state"],
+)
+
+response_counts = (
+    response_counts.set_index(["subject", "response_mental_state"])
+    .reindex(all_pairs, fill_value=0)
+    .reset_index()
+)
+
 response_counts["percentage"] = response_counts["count"] / n_probes * 100
 plt.figure(figsize=(12, 6))
 sns.barplot(
@@ -51,7 +65,7 @@ plt.show()
 
 
 # %% Summary of Frequency per category
-plt.figure(figsize=(6, 5))
+plt.figure(figsize=(5, 5))
 sns.boxplot(
     x="response_mental_state",
     y="percentage",

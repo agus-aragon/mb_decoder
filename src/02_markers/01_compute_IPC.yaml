@@ -22,21 +22,21 @@ with: juni_farm
 
 datagrabber:
   kind: PatternDataGrabber
-  datadir: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/fmriprep
+  datadir: /data/project/mb_decoder/data/bids/mb_decoder
   patterns:
     BOLD:
-      pattern: "{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz"
+      pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz"
       space: "MNI152NLin2009cAsym"
       mask:
-        pattern: "{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz"
+        pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz"
         space: "MNI152NLin2009cAsym"
       confounds:
-        pattern: "{subject}/func/{subject}_task-{task}_desc-confounds_timeseries.tsv"
+        pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_desc-confounds_timeseries.tsv"
         format: "fmriprep"
       reference:
-        pattern: "{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_boldref.nii.gz"
+        pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_boldref.nii.gz"
     VBM_GM:
-      pattern: "{subject}/anat/{subject}_space-MNI152NLin2009cAsym_res-2_label-CSF_probseg.nii.gz"
+      pattern: "derivatives/fmriprep/{subject}/anat/{subject}_space-MNI152NLin2009cAsym_res-2_label-CSF_probseg.nii.gz"
       space: "MNI152NLin2009cAsym"
   replacements:
     - subject

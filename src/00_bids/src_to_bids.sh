@@ -209,7 +209,7 @@ fi
 
 ######################### Save to datalad ########################
 # Save changes to datalad
-cd "${BIDS_DIR}"
-echo Saving changes to datalad...
-datalad save -m "Converted subject ${SUBJECT} to BIDS format"
-echo "Conversion to BIDS complete for sub-${SUBJECT}"
+#cd "${BIDS_DIR}"
+#echo Saving changes to datalad...
+#datalad save -m "Converted subject ${SUBJECT} to BIDS format"
+#echo "Conversion to BIDS complete for sub-${SUBJECT}"
