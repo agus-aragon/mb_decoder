@@ -10,17 +10,7 @@ import numpy as np
 from pathlib import Path
 
 data_path = Path("/data/project/mb_decoder/data/bids/mb_decoder")
-
-
-# %% sub-003: Retrieve events from Psychopy
-events_sub_003 = pd.read_csv(
-    data_path / "sub-003" / "func" / "sub-003_task-ES_events.tsv", sep="\t"
-)
-#TODO: copy psychopy to Kronos     
-# %% sub-005: Retrieve events from Psychop
-events_sub_005 = pd.read_csv(
-    data_path / "sub-005" / "func" / "sub-005_task-ES_events.tsv", sep="\t"
-)
+psychopy_path = data_path.parent.parent / 'subj_raw'
 
 
 # %% sub-012: Invert arousal scale
