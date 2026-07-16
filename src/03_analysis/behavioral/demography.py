@@ -1,3 +1,7 @@
+## ## ################# Demography ################# ## ## 
+# Describe sample demography (sex and age)               #
+##########################################################
+
 # %%
 import numpy as np
 import pandas as pd
@@ -5,12 +9,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-db_path = Path("/data/project/mb_decoder/data/bids/mb_decoder/")
+main_path = Path("/data/project/mb_decoder/")
+db_path = main_path / "data" / "bids" / "mb_decoder"
+out_path = main_path / "output" / "03_analysis" / "behavioral" / "demography"
+out_path.mkdir(parents=True, exist_ok=True)
 
-# %%
 df = pd.read_csv(db_path / "participants.tsv", sep="\t")
 
-# %%
+# %% Descriptive
+age_mean = round(df['age'].describe(),2)
+sex = df['sex'].value_counts()
+porc_sex = round(sex / len(df) * 100,2)
+sex_summary = pd.concat([sex, porc_sex], axis=1)
+sex_summary.columns = ['N', 'porcentage']
+print(f"Mean Age={int(age_mean['mean']):.2f} (SD={int(age_mean['std']):.2f})")
+print(f"Female={int(sex_summary.loc['F', 'porcentage'])}% (N={int(sex_summary.loc['F', 'N'])})")
+age_mean.to_csv(out_path / 'age.csv')
+sex_summary.to_csv(out_path / 'sex.csv')
+
+# %% Plot
 # Gender distribution 
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
@@ -21,11 +38,8 @@ axes[0].set_xlabel("Gender")
 axes[0].set_ylabel("Count")
 
 # Age distribution
-##TODO: fix age, overwrite with age from questionnaire because here they all have +1
-## years as for the MRI I use the date of the day of acquisition (to keep it anonymus, CRC policy)
-## + year of participant birth (to accurately calculate metrics for MRI scanning, weight, etc)
 
-sns.histplot( 
+sns.histplot(
     data=df,
     x="age",
     kde=True,
@@ -39,6 +53,11 @@ axes[1].set_xlabel("Age")
 axes[1].set_ylabel("Frequency")
 
 plt.tight_layout()
+plt.savefig(
+    out_path / "demography.png",
+    bbox_inches='tight', dpi=300
+)
 plt.show()
+
 
 # %%

@@ -1,3 +1,9 @@
+## ## ##################### MB Rates ##################### ## ##
+# #
+# #
+# #
+# #
+################################################################
 # %%
 import numpy as np
 import pandas as pd
@@ -5,7 +11,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-db_path = Path("/data/project/mb_decoder/data/bids/mb_decoder/")
+main_path = Path("/data/project/mb_decoder/")
+db_path = main_path / "data" / "bids" / "mb_decoder"
+out_path = main_path / "output" / "03_analysis" / "behavioral" / "demography"
+out_path.mkdir(parents=True, exist_ok=True)
+
 n_probes = 50
 colors = dict(
     Blank="#EEB42D",
