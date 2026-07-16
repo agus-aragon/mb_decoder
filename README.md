@@ -18,11 +18,10 @@ The MBDecoder project aim to develop a machine learning (ML) model capable of id
 
 **Inclusion Criteria:**
 - Right-handed (Edinburgh Handedness Inventory)
-- Age > 18 years
+- Age range 18-57 years old
 
 **Exclusion Criteria:**
 - Standard MRI contraindications
-- Signs of dementia (AD8 Screening)
 - History of neurological/psychiatric disorders
 
 **Acquisition Protocol:**
@@ -36,7 +35,7 @@ MRI (3T) with simulatenous EEG
 - Attentional Control Scale (ACS)
 - Epworth Sleepiness Scale (ESS)
 - Mind Blaking Self-report Questionnaire ([OSF link](https://osf.io/k8nfa/overview))
-- Amsterdam Resting-state Questionnaire (ARQ)
+- Amsterdam Resting-state Questionnaire (ARSQ)
 - Ad-hoc questions
 
 ---
