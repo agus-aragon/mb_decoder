@@ -34,7 +34,7 @@ mkdir -p "$BASE_WORK_DIR"
 source /data/project/tools/juseless_tools/fmriprep_24.1.1/fmriprep.sh
 
 # Subjects running in parallel 
-MAX_PARALLEL=5
+MAX_PARALLEL=3
 # for subj in $(ls $bids_root_dir | grep "^sub"); do
 # #for subj in ${SUBJECT}; do
 run_subject () {
