@@ -36,7 +36,7 @@ datagrabber:
       reference:
         pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_boldref.nii.gz"
     VBM_GM:
-      pattern: "derivatives/fmriprep/{subject}/anat/{subject}_space-MNI152NLin2009cAsym_res-2_label-CSF_probseg.nii.gz"
+      pattern: "derivatives/fmriprep/{subject}/anat/{subject}_space-MNI152NLin2009cAsym_res-2_label-GM_probseg.nii.gz"
       space: "MNI152NLin2009cAsym"
   replacements:
     - subject
