@@ -64,7 +64,7 @@ preprocess:
 markers:
   - name: IPC_Schaefer
     kind: InstantPhaseConnectivityParcels
-    parcellation: 
+    parcellation:
       - Schaefer100x7
       - TianxS1x3TxMNI6thgeneration
     highpass: 0.01
