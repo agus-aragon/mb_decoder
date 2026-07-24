@@ -29,22 +29,27 @@ for events_fname in data_path.glob(events_pattern):
         "response_probe": [],
         "rt_prompt": [],
         "response_arousal": [],
-        "rt_arousal": []
+        "rt_arousal": [],
     }
 
+    probe_onsets_in_TR = (df_events["onset"] / TR).astype("int")
+    first_timepoints_trial_TR = (
+        (df_events["onset"] - df_events["rest_duration"]) / TR
+    ).astype("int")
+    
     for idx, row in df_events.iterrows():
-        probe_onset_in_TR = row["onset"] / TR
-#TODO: end of trial needs arousal or end of task         
-
-        this_events["subject"] += subject * XXX,
-        this_events["timepoint"] += [],
-        this_events["event"] += [],
-        this_events["seconds_to_probe"] += [],
-        this_events["response_probe"] += [row["response_mental_state"]] * XXX,
-        this_events["rt_prompt"] += [row['response_time_mental_state']] * XXX,
-        this_events["response_arousal"] += [row["response_arousal"]] * XXX,
-        this_events["rt_arousal"] += [row['response_time_arousal']] * XXX,
-
-
-
-
+        this_probe_onset_in_TR = probe_onsets_in_TR[idx]
+        this_first_timepoints_trial_TR = first_timepoints_trial_TR[idx]
+        
+        this_events["subject"] += (subject * XXX,)
+        this_events["timepoint"] += ([],)
+        this_events["event"] += ([],)
+        this_events["seconds_to_probe"] += ([],)
+        this_events["response_probe"] += (
+            [row["response_mental_state"]] * XXX,
+        )
+        this_events["rt_prompt"] += (
+            [row["response_time_mental_state"]] * XXX,
+        )
+        this_events["response_arousal"] += ([row["response_arousal"]] * XXX,)
+        this_events["rt_arousal"] += ([row["response_time_arousal"]] * XXX,)
