@@ -113,7 +113,55 @@ for events_fname in data_path.glob(events_pattern):
 
 all_events_df = pd.concat(all_events)
 all_events_df.set_index(["subject", "timepoint"], inplace=True)
-print(all_events_df.shape)
-print(all_events_df.head())
 
-# %%
+all_events_df.to_csv(out_path_events / "all_events.csv")
+
+
+# %% Side .json with metadata/explanation
+
+events_json = {
+    "subject": {
+        "LongName": "Subject ID",
+        "Description": "unique identifier for each participant",
+    },
+    "timepoint": {
+        "LongName": "",
+        "Description": "count of MRI volumes (already syncronized)",
+    },
+    "event": {
+        "LongName": "Type of event",
+        "Description": "explains what was happening at those timepoints",
+        "Levels": {"rest": "participant was looking at the fixation cross, letting their mind free (resting state)", 
+                   "probe": "participant was probed to report their inmmediate mental state ('!' visual stimuli + sound)",
+                   "response": "participant was replying the mental state and the arousal prompt"},
+    },
+    "seconds_to_probe": {
+        "LongName": "Seconds before or after probe",
+        "Description": "Fixating probe at time 0, each timepoint gets assigned a negative (seconds before probe) or positive (seconds after probe) value. First timepoint is the start of the trial, last timepoint is the start of the next trial",
+    },
+    "response_prompt": {
+        "LongName": "Response Mental state prompt",
+        "Description": "Participant response to the mental state prompt (4 options)",
+        "Levels": {"Thought": "Thinking about something",
+                   "Blank": "Mind was blank, no though you can spot",
+                   "Sleep": "Feeling drowsy or asleep",
+                   "Sensations": "Noticing the environment or body sensations"},
+    },
+    "rt_prompt": {
+        "LongName": "Reaction time to mental state prompt",
+        "Description": "Time the participant took to choose their mental state since they were presented with the options to report (prompt)",
+    },
+    "response_arousal": {
+        "LongName": "Response to arousal question",
+        "Description": "Participant report of their arousal levels from 0% (very sleepy) to 100% very alert",
+    },
+        "rt_arousal": {
+        "LongName": "Reaction time to arousal question",
+        "Description": "Time the participant took to choose their arousal level since they were presented with the scale to report",
+    }
+}
+
+name_json = "all_events.json"
+
+with open(out_path_events / name_json, "w") as f:
+    json.dump(events_json, f, indent=4)
