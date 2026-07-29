@@ -26,6 +26,7 @@ for events_fname in data_path.glob(events_pattern):
     this_events = {
         "subject": [],
         "timepoint": [],
+        "n_trial": [],
         "event": [],
         "seconds_to_probe": [],
         "response_prompt": [],
@@ -42,8 +43,11 @@ for events_fname in data_path.glob(events_pattern):
 
     # Iterate though each event
     for idx, row in df_events.iterrows():
+        # Trial number
+        thisevent_trial_number = idx + 1  # to acccount for python 0-indexing
+
         # Define probe onset
-        thisevent_probe_onset_in_TR = probe_onsets_in_TR[idx]
+        thisevent_probe_onset_in_seconds = df_events["onset"][idx]
 
         # Define start of trial
         thisevent_first_timepoints_trial_TR = first_timepoints_trial_TR[idx]
@@ -69,22 +73,28 @@ for events_fname in data_path.glob(events_pattern):
             thisevent_first_timepoints_trial_TR,
             thisevent_end_timepoint_trial_TR,
             1,
-        )
+        ).astype("int")
 
         total_timepoints = len(this_event_timepoints_TR)
 
         # Seconds to probe
         thisevent_seconds_to_probe = (
-            this_event_timepoints_TR - thisevent_probe_onset_in_TR
+            this_event_timepoints_TR * TR - thisevent_probe_onset_in_seconds
         )
-        thisevent_n_timepoints_before_probe = (thisevent_seconds_to_probe < 0).sum()
+        thisevent_n_timepoints_before_probe = (
+            thisevent_seconds_to_probe <= 0
+        ).sum() - 1
 
-        thisevent_n_timepoints_after_probe = (thisevent_seconds_to_probe > 0).sum()
+        thisevent_n_timepoints_after_probe = (
+            thisevent_seconds_to_probe > 0
+        ).sum()
 
         # Save this event information
         this_events["subject"] += [subject] * total_timepoints
 
         this_events["timepoint"] += this_event_timepoints_TR.tolist()
+
+        this_events["n_trial"] += [thisevent_trial_number] * total_timepoints
 
         this_events["event"] += (
             ["rest"] * thisevent_n_timepoints_before_probe
@@ -101,8 +111,10 @@ for events_fname in data_path.glob(events_pattern):
             row["response_time_mental_state"]
         ] * total_timepoints
 
-        this_events["response_arousal"] += [row["response_arousal"]] * total_timepoints
-        
+        this_events["response_arousal"] += [
+            row["response_arousal"]
+        ] * total_timepoints
+
         this_events["rt_arousal"] += [
             row["response_time_arousal"]
         ] * total_timepoints
@@ -112,10 +124,35 @@ for events_fname in data_path.glob(events_pattern):
     all_events.append(subject_events_df)
 
 all_events_df = pd.concat(all_events)
+
+## Checks
+
+# Are there repeated timepoints per subject? (There should not)
+all_events_df.duplicated(subset=["subject", "timepoint"]).value_counts()
+
+# Do all trials only have one (1) probe? (There should be only 1 probe per trial)
+n_probes_per_trial = 1
+(
+    (
+        all_events_df[all_events_df["event"] == "probe"]
+        .groupby(["subject", "n_trial"])
+        .size()
+    )
+    > n_probes_per_trial
+).sum()
+
+# Is there any gap between timepoints? (There should not be)
+all_events_df.groupby('subject')['timepoint'].diff().value_counts()
+
+# Does it contain all subjects? (n=50)
+len(all_events_df['subject'].unique())
+
+# Any missing value? (There should not be)
+all_events_df.isna().sum()
+
+# Export
 all_events_df.set_index(["subject", "timepoint"], inplace=True)
-
 all_events_df.to_csv(out_path_events / "all_events.csv")
-
 
 # %% Side .json with metadata/explanation
 
@@ -128,12 +165,18 @@ events_json = {
         "LongName": "",
         "Description": "count of MRI volumes (already syncronized)",
     },
+    "n_trial": {
+        "LongName": "Number of Trial",
+        "Description": "trial ID/number, per subject. Each subject has 50 trials",
+    },
     "event": {
         "LongName": "Type of event",
         "Description": "explains what was happening at those timepoints",
-        "Levels": {"rest": "participant was looking at the fixation cross, letting their mind free (resting state)", 
-                   "probe": "participant was probed to report their inmmediate mental state ('!' visual stimuli + sound)",
-                   "response": "participant was replying the mental state and the arousal prompt"},
+        "Levels": {
+            "rest": "participant was looking at the fixation cross, letting their mind free (resting state)",
+            "probe": "participant was probed to report their inmmediate mental state ('!' visual stimuli + sound)",
+            "response": "participant was replying the mental state and the arousal prompt",
+        },
     },
     "seconds_to_probe": {
         "LongName": "Seconds before or after probe",
@@ -142,10 +185,12 @@ events_json = {
     "response_prompt": {
         "LongName": "Response Mental state prompt",
         "Description": "Participant response to the mental state prompt (4 options)",
-        "Levels": {"Thought": "Thinking about something",
-                   "Blank": "Mind was blank, no though you can spot",
-                   "Sleep": "Feeling drowsy or asleep",
-                   "Sensations": "Noticing the environment or body sensations"},
+        "Levels": {
+            "Thought": "Thinking about something",
+            "Blank": "Mind was blank, no though you can spot",
+            "Sleep": "Feeling drowsy or asleep",
+            "Sensations": "Noticing the environment or body sensations",
+        },
     },
     "rt_prompt": {
         "LongName": "Reaction time to mental state prompt",
@@ -155,10 +200,10 @@ events_json = {
         "LongName": "Response to arousal question",
         "Description": "Participant report of their arousal levels from 0% (very sleepy) to 100% very alert",
     },
-        "rt_arousal": {
+    "rt_arousal": {
         "LongName": "Reaction time to arousal question",
         "Description": "Time the participant took to choose their arousal level since they were presented with the scale to report",
-    }
+    },
 }
 
 name_json = "all_events.json"
