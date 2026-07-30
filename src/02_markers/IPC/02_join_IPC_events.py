@@ -1,10 +1,7 @@
 #%%
 import numpy as np
 import pandas as pd
-from itertools import combinations
 from pathlib import Path
-import joblib
-import csv
 from junifer.storage import HDF5FeatureStorage
 import re
 import datatable as dt
@@ -48,7 +45,6 @@ IPC_file = HDF5FeatureStorage(uri=IPC_path/ "IPC_all.hdf5")
 IPC_all = IPC_file.read_df("BOLD_IPC_Schaefer_fc")
 
 events = pd.read_csv(events_path / "all_events.csv")
-events.set_index(['subject', 'timepoint'])
 events = events.set_index(['subject', 'timepoint'])
 
 # %% Organize IPC
@@ -77,5 +73,6 @@ df = IPC.join(events, how='inner')
     # (2) Event last timepoints calculated heuristically (stop recording)
 
 # Export to .jay
+df = df.reset_index()
 DT = dt.Frame(df)
 DT.to_jay(str(out_path_events / "IPC.jay"))
