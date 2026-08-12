@@ -52,6 +52,7 @@ preprocess:
     strategy:
         motion: full
         wm_csf: full
+    spike: 0.5
     low_pass: 0.09
     high_pass: 0.008
     t_r: 1.5
@@ -74,7 +75,7 @@ markers:
       - inherit
 storage:
   kind: HDF5FeatureStorage
-  uri: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC/IPC_all.hdf5 # TODO it is not collecting them
+  uri: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC_spike/IPC_all.hdf5 # TODO it is not collecting them
 
 
 queue:
