@@ -5,11 +5,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-db_path = Path("/data/project/mb_decoder/data/bids/mb_decoder")
-
+project_path = Path("/data/project/mb_decoder/")
+data_path = project_path /"data" / "bids"/ "mb_decoder"
+out_path = project_path / "quality_check"
+out_path.mkdir(parents=True, exist_ok=True)
 # %%
 all_impedances = []
-for raw_file in db_path.glob("**/*_eeg.vhdr"):
+for raw_file in data_path.glob("**/*_eeg.vhdr"):
     # Only read the metadata from task or rest, they are equal (eg., task)
     if "ES" not in raw_file.name:
         continue
@@ -41,14 +43,26 @@ impedances_df = pd.concat(all_impedances, ignore_index=True)
 impedances_df = impedances_df[impedances_df["subject"] != "sub-003"]
 plt.figure(figsize=(15, 6))
 sns.boxplot(x="channel", y="imp", data=impedances_df, color="lightgrey", showfliers=False) 
-sns.stripplot(x="channel", y="imp", data=impedances_df, hue="subject", dodge=True, jitter=True, size=7)
+sns.stripplot(x="channel", y="imp", data=impedances_df, hue="subject", dodge=True, jitter=True, size=5)
+
 plt.xticks(rotation=90)
 plt.ylim(-1,50)
 plt.xlabel("Channel", fontsize=16)
 plt.ylabel("Impedance (kOhm)",fontsize=16)
 plt.title("Impedance Distribution Across Channels and Subjects", fontsize=18)
+plt.text(
+    1,
+    47,
+    "One subject not ploted because of bug in recording impedances (all the same)",
+    fontsize=16
+)
 plt.legend().set_visible(False)
 plt.tight_layout()
-plt.show()
+# plt.show()
+plt.savefig(out_path / "impedances.png")
+plt.close()
 
-# %%
+# %% Median of impedances per electrode
+channel_medians = impedances_df.groupby("channel")["imp"].median()
+channel_means = impedances_df.groupby("channel")["imp"].mean()
+

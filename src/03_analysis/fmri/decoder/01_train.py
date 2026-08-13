@@ -212,6 +212,12 @@ if features_metric == "IPC":
         ],
         "ALL": [".+~.+"],
     }
+if features_metric == "GS":
+        X_types = {
+        "GS": ["DEFAULT_.*"],
+        "POWER": ["VIS_.*"],
+        "DERIVATIVE": ["CONT_.*"],
+        "ALL" # TODO
 else:
     X_types = {"ALL": [".+"]}
 
