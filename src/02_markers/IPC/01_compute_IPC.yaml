@@ -75,7 +75,7 @@ markers:
       - inherit
 storage:
   kind: HDF5FeatureStorage
-  uri: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC_spike/IPC_all.hdf5 # TODO it is not collecting them
+  uri: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC/IPC_all.hdf5 # TODO it is not collecting them
 
 
 queue:

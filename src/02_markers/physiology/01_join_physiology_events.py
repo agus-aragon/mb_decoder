@@ -99,3 +99,31 @@ DT_CSF.to_jay(str(out_path_events / "CSF.jay"))
 df_WM = df_WM.reset_index()
 DT_WM = dt.Frame(df_WM)
 DT_WM.to_jay(str(out_path_events / "WM.jay"))
+
+#TODO: clean motion
+    # from nilearn.signal import clean
+
+    # # Inside your subject loop:
+    # framewise_displacement = df_subj['framewise_displacement'].fillna(0)
+    # spike_mask = framewise_displacement > 0.5  # your 0.5 threshold
+
+    # # Build motion & spike regressors
+    # motion_cols = [c for c in df_subj.columns if c.startswith('trans_') or c.startswith('rot_')]
+    # motion_regressors = df_subj[motion_cols].fillna(0).values
+
+    # # Create single-frame dummy columns for each spike frame
+    # spike_dummies = np.eye(len(df_subj))[:, spike_mask.values]
+
+    # if spike_dummies.shape[1] > 0:
+    #     confounds_to_regress = np.hstack([motion_regressors, spike_dummies])
+    # else:
+    #     confounds_to_regress = motion_regressors
+
+    # # Clean GS columns by regressing out motion + spikes
+    # GS_cleaned = clean(
+    #     df_subj[GS_cols].values,
+    #     confounds=confounds_to_regress,
+    #     detrend=True,
+    #     standardize=True,
+    #     t_r=1.5
+)

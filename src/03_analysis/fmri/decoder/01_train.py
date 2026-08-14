@@ -24,8 +24,7 @@ import julearn
 from julearn import run_cross_validation
 from julearn.config import set_config
 from julearn.pipeline import PipelineCreator
-from julearn.utils import LinearSVCHeuristicC, LogisticRegressionHeuristicC
-
+from nimrls.ml import LinearSVCHeuristicC, LogisticRegressionHeuristicC
 
 # TODO: create logger
 # TODO: comment after first run
@@ -102,6 +101,14 @@ parser.add_argument(
     default=None,
 )
 
+parser.add_argument(
+    "--targetwindow",
+    metavar="targetwindow"
+    type=float, 
+    default=10.0, 
+    help="Pre-probe window size in seconds (e.g., 10.0 for -10s to 0s)"
+)
+
 args = parser.parse_args()
 
 N_REPEATS = 5
@@ -113,6 +120,7 @@ features_name = args.features
 fold = args.fold
 cv = args.cv
 dimred = [args.dimred] if args.dimred is not None else []
+target_window = args.targetwindow
 
 features_metric = features_name.split("_")[0]
 features_xtypes = (
@@ -166,16 +174,18 @@ if dimred_method in ["pca", "selectkbest"] and dimred_value is None:
 ################################################
 filename = f"{model_name}_{features_metric}{features_suffix}{dimred_suffix}.joblib"
 y = "target"
-# TODO: define target, how big is the MS window, etc - new variable based on seconds to probe and response_prompt
-# TODO: based on target argument can be defined diferently
+
+window_mask = (df['seconds_to_probe'] >= -target_window) & (df['seconds_to_probe'] <= 0.0)
+df['target'] = np.where(window_mask, df['response_prompt'], np.nan)
+df = df[df['target'].notna()]
+
+counts = df.groupby(['subject', 'n_trial']).size()
+print(f"Target Window: {target_window}s | Total Obs: {len(df)} | Avg TRs/Trial: {counts.mean():.2f} | {counts.value_counts().to_dict()}")
 
 # TODO
-# agg parse targetdefinition:
-    # window in seconds + seconds (seconds_10, seconds_5)
-    # lag 
     # autodefined? by autocorrelation? by signal decoding?
-    #  in another code + file, to be loaded here as definition TODO
-    # yes and no, to not do circular validation 
+    #  in another code + file, to be loaded here as definition
+    # Ttargetwindow can be seconds or "autocorr" then if so it loads a file where i have that info
 
 ################################################
 # Feature Selection
@@ -213,11 +223,12 @@ if features_metric == "IPC":
         "ALL": [".+~.+"],
     }
 if features_metric == "GS":
-        X_types = {
-        "GS": ["DEFAULT_.*"],
-        "POWER": ["VIS_.*"],
-        "DERIVATIVE": ["CONT_.*"],
-        "ALL" # TODO
+        # X_types = {
+        # "GS": ["DEFAULT_.*"],
+        # "POWER": ["VIS_.*"],
+        # "DERIVATIVE": ["CONT_.*"],
+        # "ALL" # TODO
+    # }
 else:
     X_types = {"ALL": [".+"]}
 
