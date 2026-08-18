@@ -1,8 +1,6 @@
 # %%
 import re
-from ast import Raise
 import logging
-from marshal import dump
 import sys
 import time
 from argparse import ArgumentParser
@@ -19,22 +17,34 @@ from sklearn.model_selection import (
     train_test_split,
 )
 from sklearn.svm import LinearSVC
-
+from sklearn.feature_selection import SelectFromModel
 import julearn
 from julearn import run_cross_validation
 from julearn.config import set_config
 from julearn.pipeline import PipelineCreator
-from nimrls.ml import LinearSVCHeuristicC, LogisticRegressionHeuristicC
 
-# TODO: create logger
+REPO_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(REPO_ROOT / "lib"))
+from nimrls.ml import LinearSVCHeuristicC, LogisticRegressionHeuristicC
+from nimrls.logging import (
+    configure_logging,
+    log_versions,
+    logger,
+    raise_error,
+)
+
 # TODO: comment after first run
 set_config("disable_x_verbose", True)
 set_config("disable_xtypes_verbose", True)
 set_config("disable_xtypes_check", True)
 set_config("disable_x_check", True)
+
+configure_logging()
+julearn.utils.logging.configure_logging("INFO")
+log_versions()
+
+
 # %%
-
-
 ################################################
 # Argument parsing
 ################################################
@@ -45,7 +55,7 @@ parser.add_argument(
     "--target",
     metavar="target",
     type=str,
-    help="Target to predict",
+    help="State + pre-probe window size in seconds (e.g., MB10 for -10s to 0s)",
     required=True,
 )
 parser.add_argument(
@@ -63,27 +73,31 @@ parser.add_argument(
     default=None,
     required=False,
 )
-parser.add_argument(
-    "--optionals",
-    metavar="optionals",
-    type=str,
-    help="optional features",
-    required=False,
-    default=None,
-    nargs="*",
-)
+# parser.add_argument(
+#     "--optionals",
+#     metavar="optionals",
+#     type=str,
+#     help="optional features",
+#     required=False,
+#     default=None,
+#     nargs="*",
+# )
 
 parser.add_argument(
     "--dimred",
     metavar="dimred",
     type=str,
-    help="Optional dimensionality reduction method (eg., PCA)",
+    help="Optional dimensionality reduction method (eg., pca95)",
     required=False,
     default=None,
     nargs="*",
 )
 parser.add_argument(
-    "--data", metavar="project_path", type=str, help="Path to data", default="../data"
+    "--data",
+    metavar="project_path",
+    type=str,
+    help="Path to data",
+    default="../data",
 )
 parser.add_argument(
     "--fold",
@@ -102,11 +116,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--targetwindow",
-    metavar="targetwindow"
-    type=float, 
-    default=10.0, 
-    help="Pre-probe window size in seconds (e.g., 10.0 for -10s to 0s)"
+    "--debug",
+    action="store_true",
+    help="Run a fast sanity-check pass with less subjects.",
 )
 
 args = parser.parse_args()
@@ -114,19 +126,57 @@ args = parser.parse_args()
 N_REPEATS = 5
 N_SPLITS = 5
 
-target = args.target
+DEBUG_N_SUBJECTS = 5
+DEBUG_N_OPTUNA_TRIALS = 3
+
+target_args = args.target
 model_name = args.model
-features_name = args.features
+features_args = args.features
 fold = args.fold
 cv = args.cv
-dimred = [args.dimred] if args.dimred is not None else []
-target_window = args.targetwindow
+dimred = args.dimred[0] if args.dimred is not None else None
+# optionals = args.optionals if args.optionals is not None else []
+IS_DEBUG_TEST = args.debug
 
-features_metric = features_name.split("_")[0]
+if IS_DEBUG_TEST:
+    logger.warning(
+        "Running in --debug mode: data is subsampled and outputs are "
+        "prefixed with DEBUG_."
+    )
+
+features_metric = features_args.split("_")[0]
 features_xtypes = (
-    features_name.split("_")[1:] if len(features_name.split("_")) > 1 else []
+    features_args.split("_")[1:] if len(features_args.split("_")) > 1 else []
 )
 
+target_match = re.match(r"([a-zA-Z_]+)(\d+)", target_args)
+target_name, target_window = target_match.groups()
+target_window = int(target_window)
+
+features_suffix = ""
+if features_xtypes is not None and len(features_xtypes) > 0:
+    features_suffix = "-" + "-".join(features_xtypes)
+else:
+    features_suffix = "-ALL"
+
+# optionals_suffix = ""
+# if len(optionals) > 0:
+#     optionals_suffix = "_" + "_".join(optionals)
+
+dimred_suffix = ""
+if dimred is not None:
+    dimred_suffix = f"_{dimred}"
+    dimred_match = re.match(r"([a-zA-Z_]+)(\d+)?", dimred)
+    dimred_method, dimred_value = dimred_match.groups()
+    dimred_value = int(dimred_value) if dimred_value else None
+else:
+    dimred_method = dimred
+    dimred_value = None
+
+if dimred_method in ["pca", "selectkbest"] and dimred_value is None:
+    raise_error(
+        f"Dimensionality reduction method '{dimred_method}' requires a value (e.g., 'pca95')."
+    )
 
 # %%
 ################################################
@@ -139,53 +189,80 @@ out_path = (
     / "03_analysis"
     / "decoder"
     / cv
-    / f"target-{target}"
+    / f"target-{target_args}s"
     / f"features-{features_metric}"
-    / f"xtypes-{'_'.join(features_xtypes)}"
+    / f"xtypes-{features_suffix}"
 )
 out_path.mkdir(parents=True, exist_ok=True)
 
 df = fread(data_path / f"{features_metric}.jay")
-df = df.to_pandas().set_index(["subject", "timepoint"])
+df = df.to_pandas().set_index(["subject", "timepoint"]).copy()
 
-features_suffix = ""
-if features_xtypes is not None and len(features_xtypes) > 0:
-    features_suffix = "_" + "-".join(features_xtypes)
+logger.info(
+    f"Loaded data: {df.shape[0]} rows, {df.shape[1]} columns, "
+    f"{df.index.get_level_values('subject').nunique()} subjects"
+)
 
-dimred_suffix = ""
-if dimred is not None:
-    dimred_suffix = f"_{dimred}"
-
-match = re.match(r"([a-zA-Z_]+)(\d+)", dimred)
-if match:
-    dimred_method, dimred_value = match.groups()
-    dimred_value = int(dimred_value)
-else:
-    dimred_method = dimred
-    dimred_value = None
-if dimred_method in ["pca", "selectkbest"] and dimred_value is None:
-    raise ValueError(
-        f"Dimensionality reduction method '{dimred_method}' requires a value (e.g., 'pca95')."
+if IS_DEBUG_TEST:
+    rng = np.random.RandomState(42)
+    all_subjects = df.index.get_level_values("subject").unique()
+    debug_subjects = rng.choice(
+        all_subjects, size=DEBUG_N_SUBJECTS, replace=False
     )
-
+    df = df[df.index.get_level_values("subject").isin(debug_subjects)]
+    logger.info(
+        f"DEBUG: kept {DEBUG_N_SUBJECTS} subjects -> {df.shape[0]} rows"
+    )
 
 ################################################
 # Target Definition
 ################################################
-filename = f"{model_name}_{features_metric}{features_suffix}{dimred_suffix}.joblib"
 y = "target"
 
-window_mask = (df['seconds_to_probe'] >= -target_window) & (df['seconds_to_probe'] <= 0.0)
-df['target'] = np.where(window_mask, df['response_prompt'], np.nan)
-df = df[df['target'].notna()]
+window_mask = (df["seconds_to_probe"] >= -target_window) & (
+    df["seconds_to_probe"] <= 0.0
+)
+df["target"] = np.where(window_mask, df["response_prompt"], np.nan)
+df = df[df["target"].notna()]
 
-counts = df.groupby(['subject', 'n_trial']).size()
-print(f"Target Window: {target_window}s | Total Obs: {len(df)} | Avg TRs/Trial: {counts.mean():.2f} | {counts.value_counts().to_dict()}")
+counts = df.groupby(["subject", "n_trial"]).size()
+logger.info(
+    f"Target Window: {target_window}s | Total Obs: {len(df)} | "
+    f"Avg TRs/Trial: {counts.mean():.2f} | {counts.value_counts().to_dict()}"
+)
 
-# TODO
-    # autodefined? by autocorrelation? by signal decoding?
-    #  in another code + file, to be loaded here as definition
-    # Ttargetwindow can be seconds or "autocorr" then if so it loads a file where i have that info
+n_blanks = (df["target"] == "Blank").sum()
+df["target"] = np.where(df["target"] == "Blank", 1, 0)
+n_mb = (df["target"] == 1).sum()
+n_target = df["target"].value_counts()
+porcentage_target = n_target * 100 / len(df)
+
+if n_blanks == n_mb:
+    logger.info(
+        f"Target MB: {n_target.get(1, 0)} observations - {round(porcentage_target.get(1, 0), 2)}%"
+    )
+else:
+    raise_error("Error converting target into binary category variable")
+
+target_subj = (
+    df.groupby(level="subject")["target"].value_counts().unstack(fill_value=0)
+)
+no_target_subj = target_subj[(target_subj == 0).any(axis=1)].index.tolist()
+if no_target_subj:
+    logger.warning(
+        f"Excluding {len(no_target_subj)} subject(s) with 0 obs in one class: {no_target_subj}"
+    )
+    df = df[~df.index.get_level_values("subject").isin(no_target_subj)]
+    logger.info(
+        f"Remaining: {df.shape[0]} rows, "
+        f"{df.index.get_level_values('subject').nunique()} subjects"
+    )
+
+if IS_DEBUG_TEST and df.index.get_level_values("subject").nunique() < 2:
+    raise_error(
+        "DEBUG: fewer than 2 subjects remain after removing subjects with no target (MB or other)."
+        "Increase DEBUG_N_SUBJECTS or pick a different random seed."
+    )
 
 ################################################
 # Feature Selection
@@ -222,20 +299,25 @@ if features_metric == "IPC":
         ],
         "ALL": [".+~.+"],
     }
-if features_metric == "GS":
-        # X_types = {
-        # "GS": ["DEFAULT_.*"],
-        # "POWER": ["VIS_.*"],
-        # "DERIVATIVE": ["CONT_.*"],
-        # "ALL" # TODO
-    # }
+# elif features_metric == "GS":
+#         # X_types = {
+#         # "GS": ["DEFAULT_.*"],
+#         # "POWER": ["VIS_.*"],
+#         # "DERIVATIVE": ["CONT_.*"],
+#         # "ALL" # TODO
+#     # }
+# elif:
+#     X_types = {"ALL": [".+"]}
 else:
-    X_types = {"ALL": [".+"]}
+    raise_error(f"Unknown feature: {features_metric}")
 
 if features_xtypes is not None and len(features_xtypes) > 0:
-    X = features_xtypes
+    X = []
+    for xtype in features_xtypes:
+        X.extend(X_types[xtype])
 else:
-    X = list(X_types.keys())
+    X = X_types["ALL"]
+
 
 ################################################
 # General pipeline (applicable to any models)
@@ -261,24 +343,24 @@ scoring = [
 ################################################
 # Feature dimensionality reduction (optional)
 ################################################
-if "pca" in dimred_method:
-    creator.add("pca", n_components=dimred_value)
-
-if "selectkbest" in dimred_method:
-    creator.add("SelectKBest", k=dimred_value)
-
-if "cbpm" in dimred_method:
-    creator.add(
-        "cbpm",
-        significance_threshold=0.05,
-        corr_sign="posneg",
-    )
-
-elif "sfm_lasso" in dimred_method:
-    selector = SelectFromModel(
-        LinearSVC(penalty="l1", dual=False, C=0.01, class_weight="balanced")
-    )
-    creator.add(selector, name="select_from_model")
+if dimred_method:
+    if "pca" in dimred_method:
+        creator.add("pca", n_components=dimred_value)
+    elif "selectkbest" in dimred_method:
+        creator.add("SelectKBest", k=dimred_value)
+    elif "cbpm" in dimred_method:
+        creator.add(
+            "cbpm",
+            significance_threshold=0.05,
+            corr_sign="posneg",
+        )
+    elif "sfm_lasso" in dimred_method:
+        selector = SelectFromModel(
+            LinearSVC(
+                penalty="l1", dual=False, C=0.01, class_weight="balanced"
+            )
+        )
+        creator.add(selector, name="select_from_model")
 
 
 ################################################
@@ -412,38 +494,93 @@ elif model_name == "optunasvm":
     }
 
 else:
-    raise ValueError(
+    raise_error(
         f"Model '{model_name}' not recognized. Choose a valid model string."
     )
 
+if (
+    IS_DEBUG_TEST
+    and search_params is not None
+    and search_params.get("kind") == "optuna"
+):
+    logger.info(
+        f"DEBUG: shrinking optuna n_trials {search_params['n_trials']} "
+        f"-> {DEBUG_N_OPTUNA_TRIALS}"
+    )
+    search_params["n_trials"] = DEBUG_N_OPTUNA_TRIALS
 
 ################################################
-# Define CV
+# Define CV & Run Model
 ################################################
-
+groups = None
+groups_col = None
+ 
 if cv == "loso":
-    groups = df.index.get_level_values("subject")
+    df = df.reset_index()
+    groups = df["subject"].values
+    groups_col = "subject"
     n_subjects = len(np.unique(groups))
-    cv_splitter = StratifiedGroupKFold(
-        n_splits=n_subjects
-    )  # n_splits = number of unique subjects
+    all_folds = list(
+        StratifiedGroupKFold(n_splits=n_subjects).split(df, df[y], groups)
+    )
+    logger.info(f"LOSO: {n_subjects} subjects -> {len(all_folds)} folds")
+ 
 elif cv == "kfold":
-    groups = (
-        df.index.get_level_values("subject").astype(str)
-        + "_trial-"
-        + df["n_trial"].astype(str)
+    df = df.reset_index()
+    trial_id = df["subject"].astype(str) + "_trial-" + df["n_trial"].astype(str)
+    df["trial_group"] = trial_id
+    groups = df["trial_group"].values
+    groups_col = "trial_group"
+    all_folds = [
+        split
+        for rep in range(N_REPEATS)
+        for split in StratifiedGroupKFold(
+            n_splits=N_SPLITS, shuffle=True, random_state=42 + rep
+        ).split(df, df[y], groups)
+    ]
+    logger.info(
+        f"kfold: {df['trial_group'].nunique()} trial-groups -> "
+        f"{len(all_folds)} folds ({N_REPEATS} repeats x {N_SPLITS} splits)"
     )
-    cv_splitter = RepeatedStratifiedKFold(
-        n_splits=N_SPLITS, n_repeats=N_REPEATS, random_state=42
-    )
-elif cv == "nosplit":
-    cv_splitter = None
 
+elif cv == "nosplit":
+    df = df.reset_index()
+    all_idx = np.arange(len(df))
+    all_folds = [(all_idx, all_idx)]
+    logger.info("nosplit: fitting and evaluating on the full dataset")
+
+################################################
+# Select a single fold if --fold was given
+################################################
+return_estimator = "all"
+if fold is not None:
+    if all_folds is None:
+        raise_error("Cannot select a single --fold when --cv is 'nosplit'.")
+    cv_splitter = [all_folds[fold]]
+    out_path = out_path / 'folds' / model_name
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    if fold != 0:
+        return_estimator = "cv"
+else:
+    cv_splitter = all_folds
+ 
+suffix = f"_{fold}" if fold is not None else ""
+ 
+filename = f"{model_name}_{dimred_suffix}{suffix}"
+if IS_DEBUG_TEST:
+    filename = f"DEBUG_{filename}"
+
+log_file = out_path / f"{filename}_log.log"
+configure_logging(fname=log_file)
+julearn.utils.configure_logging(level="INFO", fname=log_file, overwrite=False)
 
 ################################################
 # Run Model
 ################################################
-model = run_cross_validation(
+logger.info(f"Running cross-validation | cv={cv} | fold={fold} | model={model_name}")
+logger.info(f"Class balance going into CV: {df[y].value_counts().to_dict()}")
+out = run_cross_validation(
     X=X,
     y=y,
     data=df,
@@ -451,8 +588,10 @@ model = run_cross_validation(
     model=creator,
     cv=cv_splitter,
     scoring=scoring,
+    groups=groups_col,
     return_train_score=True,
-    return_estimator="all",
+    return_estimator=return_estimator,
+    return_inspector=True,
     search_params=search_params,
 )
 
@@ -460,5 +599,25 @@ model = run_cross_validation(
 ################################################
 # Export Model
 ################################################
-model_path = out_path / filename
-dump(model["estimator"], model_path)
+scores, model, inspector = out
+logger.info(f"Scores shape: {scores.shape}")
+scores.to_csv(out_path / f"{filename}_scores.csv", sep=";")
+joblib.dump(model, out_path / f"{filename}.joblib")
+ 
+logger.info("Predicting fold probabilities")
+try:
+    if predict_proba == "proba":
+        fold_predictions = inspector.folds.predict_proba()
+    elif predict_proba == "decision":
+        fold_predictions = inspector.folds.decision_function()
+    else:
+        fold_predictions = inspector.folds.predict()
+    fold_predictions.to_csv(out_path / f"{filename}_fold_predictions.csv", sep=";")
+except Exception as e:
+    logger.error(e)
+ 
+elapsed_time = time.time() - start_time
+logger.info(
+    "Elapsed time {}".format(time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+)
+logger.info("Done!")
