@@ -35,6 +35,7 @@ for subj_path in all_subjects:
     GS_subj = df_subj[GS_cols].copy()
     GS_subj["subject"] = subj
     GS_subj['timepoint'] = GS_subj.index
+    GS_subj = GS_subj.rename(columns={'global_signal': 'global_signal_raw'})
     list_GS.append(GS_subj)
 
     # 2. CSF DataFrame
@@ -47,6 +48,8 @@ for subj_path in all_subjects:
     CSF_subj = df_subj[CSF_cols].copy()
     CSF_subj["subject"] = subj
     CSF_subj['timepoint'] = CSF_subj.index
+    CSF_subj = CSF_subj.rename(columns={'csf': 'csf_raw'})
+
     list_CSF.append(CSF_subj)
 
     # 3. White Matter DataFrame
@@ -59,6 +62,8 @@ for subj_path in all_subjects:
     WM_subj = df_subj[WM_cols].copy()
     WM_subj["subject"] = subj
     WM_subj['timepoint'] = WM_subj.index
+    WM_subj = WM_subj.rename(columns={'white_matter': 'white_matter_raw'})
+
     list_WM.append(WM_subj)
 
 # Combine all subject chunks into final DataFrames
@@ -126,4 +131,5 @@ DT_WM.to_jay(str(out_path_events / "WM.jay"))
     #     detrend=True,
     #     standardize=True,
     #     t_r=1.5
-)
+
+# %%

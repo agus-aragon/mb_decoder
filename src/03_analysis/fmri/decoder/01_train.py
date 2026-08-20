@@ -299,15 +299,27 @@ if features_metric == "IPC":
         ],
         "ALL": [".+~.+"],
     }
-# elif features_metric == "GS":
-#         # X_types = {
-#         # "GS": ["DEFAULT_.*"],
-#         # "POWER": ["VIS_.*"],
-#         # "DERIVATIVE": ["CONT_.*"],
-#         # "ALL" # TODO
-#     # }
-# elif:
-#     X_types = {"ALL": [".+"]}
+elif features_metric == "GS":
+        X_types = {
+        "GS": ["global_signal_raw"],
+        "POWER": ["global_signal_power.*"],
+        "DERIVATIVE": ["global_signal_derivative.*"],
+        "ALL": ["global_signal.*"]
+    }
+elif features_metric == "WM":
+        X_types = {
+        "WM": ["white_matter_raw"],
+        "POWER": ["white_matter_power.*"],
+        "DERIVATIVE": ["white_matter_derivative.*"],
+        "ALL": ["white_matter.*"]
+    }
+elif features_metric == "CSF":
+        X_types = {
+        "CSF": ["csf_raw"],
+        "POWER": ["csf_power.*"],
+        "DERIVATIVE": ["csf_derivative.*"],
+        "ALL": ["csf.*"]
+    }
 else:
     raise_error(f"Unknown feature: {features_metric}")
 
@@ -514,59 +526,48 @@ if (
 ################################################
 groups = None
 groups_col = None
- 
+cv_splitter = None
 if cv == "loso":
     df = df.reset_index()
-    groups = df["subject"].values
     groups_col = "subject"
+    groups = df[groups_col].values
     n_subjects = len(np.unique(groups))
-    all_folds = list(
-        StratifiedGroupKFold(n_splits=n_subjects).split(df, df[y], groups)
-    )
-    logger.info(f"LOSO: {n_subjects} subjects -> {len(all_folds)} folds")
- 
+    cv_splitter = StratifiedGroupKFold(n_splits=n_subjects)
+    logger.info(f"LOSO: {n_subjects} subjects -> {n_subjects} folds")
+
 elif cv == "kfold":
     df = df.reset_index()
-    trial_id = df["subject"].astype(str) + "_trial-" + df["n_trial"].astype(str)
-    df["trial_group"] = trial_id
-    groups = df["trial_group"].values
-    groups_col = "trial_group"
-    all_folds = [
-        split
-        for rep in range(N_REPEATS)
-        for split in StratifiedGroupKFold(
-            n_splits=N_SPLITS, shuffle=True, random_state=42 + rep
-        ).split(df, df[y], groups)
-    ]
-    logger.info(
-        f"kfold: {df['trial_group'].nunique()} trial-groups -> "
-        f"{len(all_folds)} folds ({N_REPEATS} repeats x {N_SPLITS} splits)"
+    trial_id = (
+        df["subject"].astype(str) + "_trial-" + df["n_trial"].astype(str)
     )
-
-elif cv == "nosplit":
-    df = df.reset_index()
-    all_idx = np.arange(len(df))
-    all_folds = [(all_idx, all_idx)]
-    logger.info("nosplit: fitting and evaluating on the full dataset")
+    groups_col = "trial_group"
+    df[groups_col] = trial_id
+    groups = df[groups_col].values
+    cv_splitter = StratifiedGroupKFold(
+        n_splits=N_SPLITS, shuffle=True, random_state=42
+    )  # no premade function to do REPEATED stratified GROUP k fold
+    logger.info(
+        f"kfold: {df['trial_group'].nunique()} trial-groups -> {N_SPLITS} folds"
+    )
 
 ################################################
 # Select a single fold if --fold was given
 ################################################
 return_estimator = "all"
 if fold is not None:
-    if all_folds is None:
+    if cv_splitter is None:
         raise_error("Cannot select a single --fold when --cv is 'nosplit'.")
+    all_folds = list(cv_splitter.split(df, df[y], groups))
     cv_splitter = [all_folds[fold]]
-    out_path = out_path / 'folds' / model_name
+    groups_col = None
+    out_path = out_path / "folds" / model_name
     out_path.mkdir(parents=True, exist_ok=True)
 
     if fold != 0:
         return_estimator = "cv"
-else:
-    cv_splitter = all_folds
- 
+
 suffix = f"_{fold}" if fold is not None else ""
- 
+
 filename = f"{model_name}_{dimred_suffix}{suffix}"
 if IS_DEBUG_TEST:
     filename = f"DEBUG_{filename}"
@@ -578,7 +579,9 @@ julearn.utils.configure_logging(level="INFO", fname=log_file, overwrite=False)
 ################################################
 # Run Model
 ################################################
-logger.info(f"Running cross-validation | cv={cv} | fold={fold} | model={model_name}")
+logger.info(
+    f"Running cross-validation | cv={cv} | fold={fold} | model={model_name}"
+)
 logger.info(f"Class balance going into CV: {df[y].value_counts().to_dict()}")
 out = run_cross_validation(
     X=X,
@@ -603,7 +606,7 @@ scores, model, inspector = out
 logger.info(f"Scores shape: {scores.shape}")
 scores.to_csv(out_path / f"{filename}_scores.csv", sep=";")
 joblib.dump(model, out_path / f"{filename}.joblib")
- 
+
 logger.info("Predicting fold probabilities")
 try:
     if predict_proba == "proba":
@@ -612,12 +615,16 @@ try:
         fold_predictions = inspector.folds.decision_function()
     else:
         fold_predictions = inspector.folds.predict()
-    fold_predictions.to_csv(out_path / f"{filename}_fold_predictions.csv", sep=";")
+    fold_predictions.to_csv(
+        out_path / f"{filename}_fold_predictions.csv", sep=";"
+    )
 except Exception as e:
     logger.error(e)
- 
+
 elapsed_time = time.time() - start_time
 logger.info(
-    "Elapsed time {}".format(time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+    "Elapsed time {}".format(
+        time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+    )
 )
 logger.info("Done!")
