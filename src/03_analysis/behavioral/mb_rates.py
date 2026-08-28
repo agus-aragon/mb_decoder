@@ -13,15 +13,12 @@ from pathlib import Path
 
 main_path = Path("/data/project/mb_decoder/")
 db_path = main_path / "data" / "bids" / "mb_decoder"
-out_path = main_path / "output" / "03_analysis" / "behavioral" / "demography"
+out_path = main_path / "output" / "03_analysis" / "behavioral" / "mb_rates"
 out_path.mkdir(parents=True, exist_ok=True)
 
 n_probes = 50
 colors = dict(
-    Blank="#EEB42D",
-    Sleep="#EF4747",
-    Thought="#1FA1CD",
-    Sensation="#5ECB57"
+    Blank="#EEB42D", Sleep="#EF4747", Thought="#1FA1CD", Sensation="#5ECB57"
 )
 
 # %%
@@ -70,6 +67,7 @@ plt.xlabel("Subject", fontsize=14)
 plt.ylabel("Percentage of Responses", fontsize=14)
 plt.legend(title="Response", fontsize=14)
 plt.xticks(rotation=90)
+plt.savefig(out_path / "ms_rate_per_participant.png")
 plt.tight_layout()
 plt.show()
 
@@ -82,19 +80,61 @@ sns.boxplot(
     palette=colors,
     data=response_counts,
 )
-sns.scatterplot(
+sns.stripplot(
     x="response_mental_state",
     y="percentage",
     hue="response_mental_state",
     data=response_counts,
     palette=colors,
-    s=50,
+    s=4,
+    edgecolor="black",
+    linewidth=1,
+    jitter=0.1,
 )
 plt.legend().set_visible(False)
 plt.title("Percentage of Each Report Across Subjects", fontsize=14)
 plt.xlabel("Report", fontsize=12)
 plt.ylabel("Percentage (%)", fontsize=12)
 plt.tight_layout()
+plt.savefig(out_path / "ms_rate.png")
 plt.show()
+
+response_counts.to_csv(out_path / "response_counts.csv")
+
+# %%
+subj_no_mb_reports = response_counts[
+    (response_counts["count"] == 0)
+    & (response_counts["response_mental_state"] == "Blank")
+]
+subj_mb_reports = response_counts[
+    (response_counts["count"] != 0)
+    & (response_counts["response_mental_state"] == "Blank")
+]
+len_no_mb = len(subj_no_mb_reports)
+len_mb = len(subj_mb_reports)
+counts = [len_no_mb, len_mb]
+categories = ["No MB Reports", "MB Reports"]
+total = sum(counts)
+
+
+bar_labels = [
+    f"{count}\n({count / total * 100:.1f}%)" if total > 0 else "0 (0%)"
+    for count in counts
+]
+plt.figure(figsize=(5, 4))
+ax = sns.barplot(
+    x=categories,
+    y=counts,
+    color="lightblue",
+    edgecolor="black",
+)
+ax.bar_label(ax.containers[0], labels=bar_labels, padding=3)
+
+plt.ylim(0, max(counts) * 1.2 if max(counts) > 0 else 1)
+plt.ylabel("Subject Count")
+plt.title("MB Reports")
+plt.savefig(out_path / "subj_no_mb_reports.png")
+plt.show()
+
 
 # %%
