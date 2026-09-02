@@ -26,11 +26,11 @@ colors = dict(
 all_events = []
 for events_file in db_path.glob("**/func/*_task-ES_events.tsv"):
     print(f"Reading {events_file} ...   ")
-    events_df = pd.read_csv(events_file, sep="\t")
-    events_df["subject"] = (
+    event_subj_df = pd.read_csv(events_file, sep="\t")
+    event_subj_df["subject"] = (
         events_file.parent.parent.name
     )  # Extract subject from path
-    all_events.append(events_df)
+    all_events.append(event_subj_df)
 events_df = pd.concat(all_events, ignore_index=True)
 
 # %% Frequency of each response per subject (% of out 50 probes)
@@ -137,4 +137,39 @@ plt.savefig(out_path / "subj_no_mb_reports.png")
 plt.show()
 
 
+# %%
+response_counts['MS_flag'] = np.where(
+    response_counts['response_mental_state'].astype(str).str.contains('Blank', case=False, na=False),
+    'Blank', 
+    'MS'
+)
+
+# 2. Compress counts: group by subject and MS_flag, then sum counts
+compressed_counts = response_counts.groupby(['subject', 'MS_flag'])['count'].sum().unstack(fill_value=0)
+
+# 3. Convert counts to proportions (0.0 to 1.0)
+prop_df = compressed_counts.div(compressed_counts.sum(axis=1), axis=0)
+
+# 4. Plot 100% stacked bar chart
+fig, ax = plt.subplots(figsize=(10, 5))
+
+prop_df[['MS', 'Blank']].plot(
+    kind='bar',
+    stacked=True, 
+    color=['navy', 'gold'], 
+    ax=ax,
+    width=0.6
+)
+
+# Formatting
+ax.legend(['MS', 'Blank'], bbox_to_anchor=(1.02, 1), loc='upper left', frameon=True)
+ax.axhline(0.5, color='black', linestyle='--', linewidth=1)  # 50% chance line
+ax.set_ylabel('Sample Proportion')
+ax.set_xlabel('Participants')
+ax.set_ylim(-0.02, 1.02)
+plt.xticks(rotation=90, ha='right')
+
+plt.tight_layout()
+plt.savefig(out_path / "proportion_MB_vs_MS.png")
+plt.show()
 # %%

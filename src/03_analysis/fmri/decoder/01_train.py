@@ -184,7 +184,7 @@ if dimred_method in ["pca", "selectkbest"] and dimred_value is None:
 ################################################
 data_path = Path(args.data)
 out_path = (
-    data_path.parent.parent
+    data_path.parents[4]
     / "output"
     / "03_analysis"
     / "decoder"
@@ -357,7 +357,8 @@ scoring = [
 ################################################
 if dimred_method:
     if "pca" in dimred_method:
-        creator.add("pca", n_components=dimred_value)
+        pca_variance = dimred_value / 100
+        creator.add("pca", n_components=pca_variance)
     elif "selectkbest" in dimred_method:
         creator.add("SelectKBest", k=dimred_value)
     elif "cbpm" in dimred_method:
@@ -563,8 +564,8 @@ if fold is not None:
     out_path = out_path / "folds" / model_name
     out_path.mkdir(parents=True, exist_ok=True)
 
-    if fold != 0:
-        return_estimator = "cv"
+    # if fold != 0:
+    #     return_estimator = "cv"
 
 suffix = f"_{fold}" if fold is not None else ""
 
