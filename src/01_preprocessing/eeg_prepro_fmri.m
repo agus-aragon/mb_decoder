@@ -70,7 +70,7 @@ fprintf('      - Sampling rate: %.1f Hz\n', EEG.srate);
 %% Clean Gradient Artifacts using FMRIB's fASTR
 fprintf('Removing gradient artifacts using fASTR...\n');
 tic;
-EEG = pop_fmrib_fastr(EEG, 70, 5, 10, 'Scanner', 0, 0, 0, 0, 0, 0.03, 32:37, 'auto');
+EEG = pop_fmrib_fastr(EEG, 70, 4, 21, 'Scanner', 0, 0, 0, 0, 0, 0.03, 65:68, 'auto');
 EEG = eeg_checkset(EEG);
 ga_time = toc;
 fprintf('Gradient artifacts removed in %.2f seconds\n', ga_time);
@@ -116,7 +116,7 @@ fprintf('Data resampled in %.2f seconds\n', resample_time);
 %% Remove BCG artifacts using CW Regression
 fprintf('Removing BCG artifacts using CW Regression...\n');
 tic;
-EEG = pop_cwregression(EEG,500,4,0.021,1,'hann',33:37,1:31,'taperedhann',0);
+EEG = pop_cwregression(EEG,500,4,0.021,1,'hann',65:68, 1:64,'taperedhann',0);
 bcg_time = toc;
 fprintf('BCG artifacts removed in %.2f seconds\n', bcg_time);
 

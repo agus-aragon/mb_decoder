@@ -4,9 +4,15 @@ import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
+import mne
+from mne.io import read_raw_eeglab
+from matplotlib.lines import Line2D
 
 project_path = Path("/data/project/mb_decoder/")
 data_path = project_path /"data" / "bids"/ "mb_decoder"
+eeglab_fmriartem_path = data_path / "derivatives" / "eeglab_fmriartrem"
+
 out_path = project_path / "quality_check"
 out_path.mkdir(parents=True, exist_ok=True)
 # %%
@@ -66,3 +72,54 @@ plt.close()
 channel_medians = impedances_df.groupby("channel")["imp"].median()
 channel_means = impedances_df.groupby("channel")["imp"].mean()
 
+# %% Cardiobalistic information in CWL
+channel_colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"] 
+all_results = {} 
+
+
+for eeg_file in eeglab_fmriartem_path.glob("**/*_task-ES_desc-fmriClean_eeg.set"):
+    subject = eeg_file.stem.split("_")[0]
+    print(f"Processing {subject}...")
+    raw = read_raw_eeglab(eeg_file, preload=True)
+    cwl_names = raw.ch_names[64:68]
+
+    raw_cwl = raw.copy().pick(cwl_names)
+    psd = raw_cwl.compute_psd(fmin=0.1, fmax=10, method="welch", n_fft=2048, verbose=False)
+    psd_data, freqs = psd.get_data(return_freqs=True)  # shape (4, n_freqs)
+    psd_db = 10 * np.log10(psd_data * 1e12)  # convert to dB re 1 uV^2, matches MNE's default plot scaling
+ 
+    all_results[subject] = {
+        "freqs": freqs,
+        "psd_db": psd_db,
+        "ch_names": cwl_names,
+    }
+
+fig, ax = plt.subplots(figsize=(14, 7))
+ 
+for subject, res in all_results.items():
+    freqs = res["freqs"]
+    psd_db = res["psd_db"]
+    for ch_idx in range(psd_db.shape[0]):
+        ax.plot(
+            freqs,
+            psd_db[ch_idx],
+            color=channel_colors[ch_idx % len(channel_colors)],
+            alpha=0.3,
+            linewidth=2,
+        )
+
+legend_labels = res["ch_names"] if all_results else [f"CWL{i+1}" for i in range(4)]
+legend_elements = [
+    Line2D([0], [0], color=channel_colors[i], lw=2, label=legend_labels[i])
+    for i in range(len(channel_colors))
+]
+ax.legend(handles=legend_elements, loc="upper right")
+ax.set_xlabel("Frequency (Hz)")
+ax.set_ylabel("Power (dB/Hz re 1 µV²)")
+ax.set_title(f"CWL channel PSDs — all subjects (n={len(all_results)})")
+ax.grid(True, linestyle=":", alpha=0.5)
+ 
+plt.tight_layout()
+plt.savefig(out_path / "CWL_PSD_all_subjects.png")
+plt.show()
+# %%

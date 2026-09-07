@@ -301,21 +301,21 @@ if features_metric == "IPC":
     }
 elif features_metric == "GS":
     X_types = {
-        "GS": ["global_signal_raw"],
+        "raw": ["global_signal_raw"],
         "POWER": ["global_signal_power.*"],
         "DERIVATIVE": ["global_signal_derivative.*"],
         "ALL": ["global_signal.*"],
     }
 elif features_metric == "WM":
     X_types = {
-        "WM": ["white_matter_raw"],
+        "raw": ["white_matter_raw"],
         "POWER": ["white_matter_power.*"],
         "DERIVATIVE": ["white_matter_derivative.*"],
         "ALL": ["white_matter.*"],
     }
 elif features_metric == "CSF":
     X_types = {
-        "CSF": ["csf_raw"],
+        "raw": ["csf_raw"],
         "POWER": ["csf_power.*"],
         "DERIVATIVE": ["csf_derivative.*"],
         "ALL": ["csf.*"],

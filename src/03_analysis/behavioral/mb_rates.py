@@ -140,7 +140,7 @@ plt.show()
 # %%
 response_counts['MS_flag'] = np.where(
     response_counts['response_mental_state'].astype(str).str.contains('Blank', case=False, na=False),
-    'Blank', 
+    'Blank',
     'MS'
 )
 
