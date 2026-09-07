@@ -33,11 +33,10 @@ from nimrls.logging import (
     raise_error,
 )
 
-# TODO: comment after first run
-set_config("disable_x_verbose", True)
-set_config("disable_xtypes_verbose", True)
-set_config("disable_xtypes_check", True)
-set_config("disable_x_check", True)
+# set_config("disable_x_verbose", True)
+# set_config("disable_xtypes_verbose", True)
+# set_config("disable_xtypes_check", True)
+# set_config("disable_x_check", True)
 
 configure_logging()
 julearn.utils.logging.configure_logging("INFO")
@@ -55,7 +54,7 @@ parser.add_argument(
     "--target",
     metavar="target",
     type=str,
-    help="State + pre-probe window size in seconds (e.g., MB10 for -10s to 0s)",
+    help="Target state vs. MS or ALL + pre-probe window size in seconds (e.g., BlankvsMS10 for -10s to 0s)",
     required=True,
 )
 parser.add_argument(
@@ -144,20 +143,19 @@ if IS_DEBUG_TEST:
         "prefixed with DEBUG_."
     )
 
-features_metric = features_args.split("_")[0]
-features_xtypes = (
-    features_args.split("_")[1:] if len(features_args.split("_")) > 1 else []
-)
+features_list = features_args.split("_")
 
 target_match = re.match(r"([a-zA-Z_]+)(\d+)", target_args)
-target_name, target_window = target_match.groups()
+target_classes, target_window = target_match.groups()
+target_classes = target_classes.split("vs")
+pos_labels = target_classes[0]
 target_window = int(target_window)
 
 features_suffix = ""
-if features_xtypes is not None and len(features_xtypes) > 0:
-    features_suffix = "-" + "-".join(features_xtypes)
-else:
-    features_suffix = "-ALL"
+if features_list is not None and len(features_list) > 0:
+    features_suffix = "-" + "-".join(features_list)
+# else:
+#     features_suffix = "-ALL"
 
 # optionals_suffix = ""
 # if len(optionals) > 0:
@@ -190,17 +188,30 @@ out_path = (
     / "decoder"
     / cv
     / f"target-{target_args}s"
-    / f"features-{features_metric}"
-    / f"xtypes{features_suffix}"
+    / f"features-{features_suffix}"
 )
 out_path.mkdir(parents=True, exist_ok=True)
 
-df = fread(data_path / f"{features_metric}.jay")
+df = fread(data_path / f"{features_list[0]}.jay")
 df = df.to_pandas().set_index(["subject", "timepoint"]).copy()
 
+has_target = (
+    df["response_prompt"]
+    .eq(pos_labels)
+    .groupby(level="subject")
+    .transform("any")
+)
+df = df[has_target]
+
+# Log info
 logger.info(
     f"Loaded data: {df.shape[0]} rows, {df.shape[1]} columns, "
     f"{df.index.get_level_values('subject').nunique()} subjects"
+)
+
+kept_subjects = df.index.get_level_values("subject")[has_target].unique()
+logger.info(
+    f"Keeping {len(kept_subjects)} subject(s) with target '{pos_labels}'"
 )
 
 if IS_DEBUG_TEST:
@@ -217,57 +228,107 @@ if IS_DEBUG_TEST:
 ################################################
 # Target Definition
 ################################################
-y = "target"
-
+# Define lenght of events based on pre-defined window
 window_mask = (df["seconds_to_probe"] >= -target_window) & (
     df["seconds_to_probe"] <= 0.0
 )
-df["target"] = np.where(window_mask, df["response_prompt"], np.nan)
-df = df[df["target"].notna()]
+# Define target based on the target categories
+if "ALL" in target_classes:
+    df = df[window_mask].copy()
+elif "MS" in target_classes:
+    # Omit Sleep reports in response_prompt
+    df = df[window_mask & (df["response_prompt"] != "Sleep")].copy()
+elif "Sleep" in target_classes:
+    df = df[
+        window_mask
+        & (df["response_prompt"] != "Sensation")
+        & (df["response_prompt"] != "Thought")
+    ].copy()
 
+# Log info
 counts = df.groupby(["subject", "n_trial"]).size()
 logger.info(
     f"Target Window: {target_window}s | Total Obs: {len(df)} | "
     f"Avg TRs/Trial: {counts.mean():.2f} | {counts.value_counts().to_dict()}"
 )
 
-n_blanks = (df["target"] == "Blank").sum()
-df["target"] = np.where(df["target"] == "Blank", 1, 0)
-n_mb = (df["target"] == 1).sum()
-n_target = df["target"].value_counts()
-porcentage_target = n_target * 100 / len(df)
-
-if n_blanks == n_mb:
-    logger.info(
-        f"Target MB: {n_target.get(1, 0)} observations - {round(porcentage_target.get(1, 0), 2)}%"
-    )
-else:
-    raise_error("Error converting target into binary category variable")
-
-target_subj = (
-    df.groupby(level="subject")["target"].value_counts().unstack(fill_value=0)
+target1_freq = df["response_prompt"].value_counts()[pos_labels]
+target0_freq = df["response_prompt"].value_counts().sum() - target1_freq
+logger.info(
+    f"Target {pos_labels}: {target1_freq} observations "
+    f"- {round(target1_freq / len(df) * 100, 2)}%"
+    f" | Other {target_classes[1]}: {target0_freq} observations "
 )
-no_target_subj = target_subj[(target_subj == 0).any(axis=1)].index.tolist()
-if no_target_subj:
-    logger.warning(
-        f"Excluding {len(no_target_subj)} subject(s) with 0 obs in one class: {no_target_subj}"
-    )
-    df = df[~df.index.get_level_values("subject").isin(no_target_subj)]
-    logger.info(
-        f"Remaining: {df.shape[0]} rows, "
-        f"{df.index.get_level_values('subject').nunique()} subjects"
-    )
-
-if IS_DEBUG_TEST and df.index.get_level_values("subject").nunique() < 2:
-    raise_error(
-        "DEBUG: fewer than 2 subjects remain after removing subjects with no target (MB or other)."
-        "Increase DEBUG_N_SUBJECTS or pick a different random seed."
-    )
 
 ################################################
 # Feature Selection
 ################################################
-if features_metric == "IPC":
+X = []
+if features_list is None or len(features_list) == 0:
+    raise_error("No features specified. Use --features to specify features.")
+elif features_list[0] not in ["IPC", "GS", "WM", "CSF"]:
+    raise_error(
+        f"Unknown feature metric '{features_list[0]}'. "
+        "Valid options are: IPC, GS, WM, CSF."
+    )
+elif features_list[0] == "IPC":
+    if "ALL" in features_list:
+        X = df.filter(regex=".+~.+").columns.tolist()
+    elif "DMN" in features_list:
+        X = df.filter(regex="DEFAULT_.*").columns.tolist()
+    elif "VIS" in features_list:
+        X = df.filter(regex="VIS_.*").columns.tolist()
+    elif "CONT" in features_list:
+        X = df.filter(regex="CONT_.*").columns.tolist()
+    elif "DORSATTN" in features_list:
+        X = df.filter(regex="DORSATTN_.*").columns.tolist()
+    elif "LIMBIC" in features_list:
+        X = df.filter(regex="LIMBIC_.*").columns.tolist()
+    elif "SALVENTATTN" in features_list:
+        X = df.filter(regex="SALVENTATTN_.*").columns.tolist()
+    elif "SOMMOT" in features_list:
+        X = df.filter(regex="SOMMOT_.*").columns.tolist()
+    elif "SUBCORTEX" in features_list:
+        X = df.filter(regex="SUBCORTEX_.*").columns.tolist()
+    elif "INTERNETWORK" in features_list:
+        X = df.filter(regex="INTERNETWORK_.*").columns.tolist()
+    elif "ONLYCORTICALNETWORKS" in features_list:
+        X = df.filter(
+            regex="DEFAULT_.*|VIS_.*|CONT_.*|DORSATTN_.*|LIMBIC_.*|SALVENTATTN_.*|SOMMOT_.*"
+        ).columns.tolist()
+    elif "ONLYNETWORKS" in features_list:
+        X = df.filter(
+            regex="DEFAULT_.*|VIS_.*|CONT_.*|DORSATTN_.*|LIMBIC_.*|SALVENTATTN_.*|SOMMOT_.*|SUBCORTEX_.*"
+        ).columns.tolist()
+elif features_list[0] == "GS":
+    if "ALL" in features_list:
+        X = df.filter(regex="global_signal.*").columns.tolist()
+    elif "raw" in features_list:
+        X = df.filter(regex="global_signal_raw").columns.tolist()
+    elif "POWER" in features_list:
+        X = df.filter(regex="global_signal_power.*").columns.tolist()
+    elif "DERIVATIVE" in features_list:
+        X = df.filter(regex="global_signal_derivative.*").columns.tolist()
+elif features_list[0] == "WM":
+    if "ALL" in features_list:
+        X = df.filter(regex="white_matter.*").columns.tolist()
+    elif "raw" in features_list:
+        X = df.filter(regex="white_matter_raw").columns.tolist()
+    elif "POWER" in features_list:
+        X = df.filter(regex="white_matter_power.*").columns.tolist()
+    elif "DERIVATIVE" in features_list:
+        X = df.filter(regex="white_matter_derivative.*").columns.tolist()
+elif features_list[0] == "CSF":
+    if "ALL" in features_list:
+        X = df.filter(regex="csf.*").columns.tolist()
+    elif "raw" in features_list:
+        X = df.filter(regex="csf_raw").columns.tolist()
+    elif "POWER" in features_list:
+        X = df.filter(regex="csf_power.*").columns.tolist()
+    elif "DERIVATIVE" in features_list:
+        X = df.filter(regex="csf_derivative.*").columns.tolist()
+
+if features_list[0] == "IPC":
     X_types = {
         "DMN": ["DEFAULT_.*"],
         "VIS": ["VIS_.*"],
@@ -278,57 +339,27 @@ if features_metric == "IPC":
         "SOMMOT": ["SOMMOT_.*"],
         "SUBCORTEX": ["SUBCORTEX_.*"],
         "INTERNETWORK": ["INTERNETWORK_.*"],
-        "ONLYCORTICALNETWORKS": [
-            "DEFAULT_.*",
-            "VIS_.*",
-            "CONT_.*",
-            "DORSATTN_.*",
-            "LIMBIC_.*",
-            "SALVENTATTN_.*",
-            "SOMMOT_.*",
-        ],
-        "ONLYNETWORKS": [
-            "DEFAULT_.*",
-            "VIS_.*",
-            "CONT_.*",
-            "DORSATTN_.*",
-            "LIMBIC_.*",
-            "SALVENTATTN_.*",
-            "SOMMOT_.*",
-            "SUBCORTEX_.*",
-        ],
-        "ALL": [".+~.+"],
     }
-elif features_metric == "GS":
+elif features_list[0] == "GS":
     X_types = {
         "raw": ["global_signal_raw"],
         "POWER": ["global_signal_power.*"],
         "DERIVATIVE": ["global_signal_derivative.*"],
-        "ALL": ["global_signal.*"],
     }
-elif features_metric == "WM":
+elif features_list[0] == "WM":
     X_types = {
         "raw": ["white_matter_raw"],
         "POWER": ["white_matter_power.*"],
         "DERIVATIVE": ["white_matter_derivative.*"],
-        "ALL": ["white_matter.*"],
     }
-elif features_metric == "CSF":
+elif features_list[0] == "CSF":
     X_types = {
         "raw": ["csf_raw"],
         "POWER": ["csf_power.*"],
         "DERIVATIVE": ["csf_derivative.*"],
-        "ALL": ["csf.*"],
     }
 else:
-    raise_error(f"Unknown feature: {features_metric}")
-
-if features_xtypes is not None and len(features_xtypes) > 0:
-    X = []
-    for xtype in features_xtypes:
-        X.extend(X_types[xtype])
-else:
-    X = X_types["ALL"]
+    X_types = None
 
 
 ################################################
@@ -355,6 +386,8 @@ scoring = [
 ################################################
 # Feature dimensionality reduction (optional)
 ################################################
+# TODO: will this be done by X_types automatically?
+# add here LEiDA?
 if dimred_method:
     if "pca" in dimred_method:
         pca_variance = dimred_value / 100
@@ -558,7 +591,7 @@ return_estimator = "all"
 if fold is not None:
     if cv_splitter is None:
         raise_error("Cannot select a single --fold when --cv is 'nosplit'.")
-    all_folds = list(cv_splitter.split(df, df[y], groups))
+    all_folds = list(cv_splitter.split(df, df["response_prompt"], groups))
     cv_splitter = [all_folds[fold]]
     groups_col = None
     out_path = out_path / "folds" / model_name
@@ -583,12 +616,15 @@ julearn.utils.configure_logging(level="INFO", fname=log_file, overwrite=False)
 logger.info(
     f"Running cross-validation | cv={cv} | fold={fold} | model={model_name}"
 )
-logger.info(f"Class balance going into CV: {df[y].value_counts().to_dict()}")
+logger.info(
+    f"Class balance going into CV: {df['response_prompt'].value_counts().to_dict()}"
+)
 out = run_cross_validation(
     X=X,
-    y=y,
+    y="response_prompt",
     data=df,
     X_types=X_types,
+    pos_labels=pos_labels,
     model=creator,
     cv=cv_splitter,
     scoring=scoring,
@@ -597,6 +633,7 @@ out = run_cross_validation(
     return_estimator=return_estimator,
     return_inspector=True,
     search_params=search_params,
+    # seed?
 )
 
 
