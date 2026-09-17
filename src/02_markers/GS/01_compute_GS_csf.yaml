@@ -1,0 +1,68 @@
+workdir: /tmp
+with: juni_farm
+
+datagrabber:
+  kind: PatternDataGrabber
+  datadir: /data/project/mb_decoder/data/bids/mb_decoder
+  patterns:
+    BOLD:
+      pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz"
+      space: "MNI152NLin2009cAsym"
+      mask:
+        pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_desc-brain_mask.nii.gz"
+        space: "MNI152NLin2009cAsym"
+      confounds:
+        pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_desc-confounds_timeseries.tsv"
+        format: "fmriprep"
+      reference:
+        pattern: "derivatives/fmriprep/{subject}/func/{subject}_task-{task}_space-MNI152NLin2009cAsym_res-2_boldref.nii.gz"
+    VBM_GM:
+      pattern: "derivatives/fmriprep/{subject}/anat/{subject}_space-MNI152NLin2009cAsym_res-2_label-CSF_probseg.nii.gz"  # hack for CSF (not supported otherwise)
+      space: "MNI152NLin2009cAsym"
+  replacements:
+    - subject
+    - task
+  types:
+    - BOLD
+    - VBM_GM 
+
+preprocess:
+  - kind: fMRIPrepConfoundRemover
+    detrend: true
+    standardize: true
+    strategy:
+        motion: full
+        wm_csf: full
+    spike: 0.5
+    low_pass: 0.09
+    high_pass: 0.008
+    t_r: 1.5
+    masks:
+      - compute_brain_mask:
+          threshold: 0.2
+          mask_type: gm 
+          source: subject
+
+
+markers:
+  - name: global_signal_csf
+    kind: MaskAggregation
+    masks:
+    - inherit
+    on: BOLD
+storage:
+  kind: HDF5FeatureStorage
+  uri: /data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/GS_csf/GS_all.hdf5 
+
+
+queue:
+  jobname: MBDecoder_GS
+  kind: GNUParallelLocal
+env:
+  kind: conda
+  name: junifer_env
+  shell: zsh
+pre_run: |
+  source /data/project/tools/juseless_tools/afni_24.3.06/afni.sh
+  source /data/project/tools/juseless_tools/ants_2.5.0/ants.sh
+  source /data/project/tools/juseless_tools/fsl_6.0.4-patched2/fsl.sh
