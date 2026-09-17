@@ -172,4 +172,21 @@ plt.xticks(rotation=90, ha='right')
 plt.tight_layout()
 plt.savefig(out_path / "proportion_MB_vs_MS.png")
 plt.show()
+# %% Subjects with no other mental states report
+subj_no_sleep_reports = response_counts[
+    (response_counts["count"] == 0)
+    & (response_counts["response_mental_state"] == "Sleep")
+]
+
+subj_no_thought_reports = response_counts[
+    (response_counts["count"] == 0)
+    & (response_counts["response_mental_state"] == "Thought")
+]
+
+subj_no_sensation_reports = response_counts[
+    (response_counts["count"] == 0)
+    & (response_counts["response_mental_state"] == "Sensation")
+]
+
+
 # %%

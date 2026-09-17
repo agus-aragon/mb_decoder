@@ -32,6 +32,7 @@ from nimrls.ml import LinearSVCHeuristicC, LogisticRegressionHeuristicC
 # set_config("disable_xtypes_verbose", True)
 # set_config("disable_xtypes_check", True)
 # set_config("disable_x_check", True)
+set_config("enable_auto_escape_parenthesis", False)
 
 
 # %%
@@ -49,7 +50,7 @@ parser.add_argument(
     type=str,
     choices=valid_targets,
     help=(
-        "Target state vs. MS or ALL + pre-probe window size in seconds "
+        "Target state vs. MS or ALL"
         " (e.g., BlankvsMS Blank vs Mental States)",
     ),
     required=True,
@@ -92,7 +93,7 @@ parser.add_argument(
 
 valid_features = [  # TODO
     "IPC",
-    "IPC_DMN",
+    "IPC_DEFAULT",
     "IPC_VIS",
     "IPC_CONT",
     "IPC_DORSATTN",
@@ -103,18 +104,23 @@ valid_features = [  # TODO
     "IPC_INTERNETWORK",
     "IPC_ONLYCORTICALNETWORKS",
     "IPC_ONLYNETWORKS",
-    "GS",
-    "GS_raw",
-    "GS_POWER",
-    "GS_DERIVATIVE",
-    "WM",
-    "WM_raw",
-    "WM_POWER",
-    "WM_DERIVATIVE",
-    "CSF",
-    "CSF_raw",
-    "CSF_POWER",
-    "CSF_DERIVATIVE",
+    "GSgm",
+    "GSgm_mean",
+    "GSgm_power",
+    "GSgm_derivative",
+    "GSwm",
+    "GSwm_mean",
+    "GSwm_power",
+    "GSwm_derivative",
+    "GScsf",
+    "GScsf_mean",
+    "GScsf_power",
+    "GScsf_derivative",
+    "GSbrain",
+    "GSbrain_mean",
+    "GSbrain_power",
+    "GSbrain_derivative",
+
 ]
 parser.add_argument(
     "--feature",
@@ -122,7 +128,7 @@ parser.add_argument(
     type=str,
     choices=valid_features,
     nargs="+",
-    help="Features to use (METRIC_Xtypes (eg., IPC or IPC_DMN))",
+    help="Features to use (METRIC_subtype (eg., IPC or IPC_DMN))",
     required=True,
 )
 
@@ -407,6 +413,7 @@ for t_feature in features_args:
         X_types[t_feature] = [f"{t_feature}_.*"]
     else:
         if t_subfeature in [
+            "DEFAULT",
             "VIS",
             "CONT",
             "DORSATTN",
@@ -420,11 +427,6 @@ for t_feature in features_args:
             if t_feature not in X_types:
                 X_types[t_feature] = []
             X_types[f"{t_feature}"].extend([f"{t_feature}_{t_subfeature}_.*"])
-        elif t_subfeature == "DMN":
-            X.append(f"{t_feature}_DEFAULT_.*")
-            if t_feature not in X_types:
-                X_types[t_feature] = []
-            X_types[f"{t_feature}"].extend([f"{t_feature}_DEFAULT_.*"])
         elif t_subfeature == "ONLYCORTICALNETWORKS":
             X.append(
                 f"{t_feature}_(DEFAULT|VIS|CONT|DORSATTN|LIMBIC|SALVENTATTN|SOMMOT)_.*"
@@ -444,7 +446,7 @@ for t_feature in features_args:
                     f"{t_feature}_(DEFAULT|VIS|CONT|DORSATTN|LIMBIC|SALVENTATTN|SOMMOT|SUBCORTEX)_.*"
                 ]
             )
-        elif t_subfeature in ["raw", "POWER", "DERIVATIVE"]:
+        elif t_subfeature in ["mean", "power", "derivative"]:
             if t_feature == "GS":
                 t_feature_expand = "global_signal"
             elif t_feature == "WM":
@@ -497,11 +499,11 @@ elif dimred == "pca85":
 elif dimred == "pca80":
     creator.add("pca", n_components=0.80)
 elif dimred == "selectkbest10":
-    creator.add("SelectKBest", k=10)
+    creator.add("select_k", k=10)
 elif dimred == "selectkbest20":
-    creator.add("SelectKBest", k=20)
+    creator.add("select_k", k=20)
 elif dimred == "selectkbest50":
-    creator.add("SelectKBest", k=50)
+    creator.add("select_k", k=50)
 elif dimred == "cbpm":
     creator.add(
         "cbpm",
@@ -726,7 +728,6 @@ out = run_cross_validation(
     return_inspector=True,
     search_params=search_params,
 )
-
 
 ################################################
 # Export Model

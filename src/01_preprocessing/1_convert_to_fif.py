@@ -71,20 +71,20 @@ for raw_file in db_path.glob("**/*.set"):
                 mental_state = psychopy.loc[i, "response_mental_state"]
                 if trig_desc == "response_probe":
                     new_descriptions.loc[row_idx] = (
-                        f"Response/Probe/Trial{trial_num}/{mental_state}"
+                        f"response_mentalstate/trial{trial_num}"
                     )
                 elif trig_desc == "start_trial":
                     new_descriptions.loc[row_idx] = (
-                        f"Start/Trial{trial_num}"
+                        f"start/trial{trial_num}"
                     )
                 elif trig_desc == "probe":
-                    new_descriptions.loc[row_idx] = (
-                        f"Probe/Trial{trial_num}"
-                    )
-                else:  # response_arousal
                     arousal_val = psychopy.loc[i, "response_arousal"]
                     new_descriptions.loc[row_idx] = (
-                        f"Response/Arousal/Trial{trial_num}/{mental_state}/{arousal_val}"
+                        f"probe/{mental_state}/{arousal_val}/trial{trial_num}"
+                    )
+                elif trig_desc == "response_arousal":
+                    new_descriptions.loc[row_idx] = (
+                        f"response_arousal/trial{trial_num}"
                     )
 
         df["description"] = new_descriptions
