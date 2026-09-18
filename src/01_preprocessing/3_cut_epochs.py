@@ -30,6 +30,9 @@ for raw_file in deriv_path.glob("**/*_eeg.fif"):
         print(f"Skipping {subject} {task} for now")
         continue
 
+#TODO: cut task-ES data into epochs based on probes/responses
+               # Check Andrillon 2021, Munoz-Musat 2025 & Boulakis 2025, among others
+
     print(f"Processing {subject} {task}")
     raw = mne.io.read_raw_fif(raw_file, preload=True)
     cleaner.reject(raw_file, raw, required=True)
