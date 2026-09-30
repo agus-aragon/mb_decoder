@@ -200,7 +200,7 @@ def read_transform(
                     good_idx = np.logical_and(good_rows, good_columns)
                     t_data = t_data[good_idx][:, good_idx]
 
-                prep = preprocessing.get(func_str, lambda W: W)
+                prep = preprocessing.get(func_str, lambda W: W) #### My edits (#TODO)
                 t_data = prep(t_data)
                 output = func(
                     t_data,
@@ -208,7 +208,7 @@ def read_transform(
                     **transform_kw_args,
                 )
                 output_list.append(output)
-                element_list.append(label)
+                element_list.append(label) #### My edits
 
         # Create dataframe for index
         idx_df = pd.DataFrame(data=element_list)
