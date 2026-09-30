@@ -140,7 +140,7 @@ def read_transform(
                 " the code yourself."
             )
 
-        preprocessing = { #TODO: check if to do by func_str or if it is easier to do by suffix alone (und, wu, etc)
+        preprocessing = { #### My edits #TODO: check if to do by func_str or if it is easier to do by suffix alone (und, wu, etc)
             # so far: binary vs weighted, directed vs. undirected, sign, diagnonal should be zero I think but check if for all 
             # some need thresholding // https://sites.google.com/site/bctnet/all-help-headers?authuser=0
             "degrees_und": lambda W: (
