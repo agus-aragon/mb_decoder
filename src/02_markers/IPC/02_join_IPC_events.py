@@ -42,15 +42,15 @@ parser.add_argument(
     help="Path to data",
     required=True,
 )
-parser.add_argument(
-    "--name",
-    metavar="name",
-    type=str,
-    help="Feature name from HDF5.list_features() (eg., BOLD_IPC_Schaefer_fc)",
-    required=True,
-)
+# parser.add_argument(
+#     "--name",
+#     metavar="name",
+#     type=str,
+#     help="Feature name from HDF5.list_features() (eg., BOLD_IPC_Schaefer_fc)",
+#     required=True,
+# )
 
-valid_markers = ['gsr', 'noHighOrder', 'noLowOrder', 'noLowOrdernoAttLimb' None]
+valid_markers = ['gsr', 'noHighOrder', 'noLowOrder', 'noLowOrdernoAttLimb', None]
 parser.add_argument(
     "--marker",
     metavar="marker",
@@ -62,7 +62,7 @@ parser.add_argument(
 )
 
 args = parser.parse_args()
-name = args.name
+# name = args.name
 marker = args.marker if args.marker else ""
 data_path = args.data #Path("/data/project/mb_decoder/data/bids/mb_decoder/derivatives")
 ipc_path = data_path / "junifer" / f"IPC{marker}"
@@ -73,7 +73,7 @@ out_path_events.mkdir(parents=True, exist_ok=True)
 print(f"Path: {ipc_path}")
 
 # %% Load data
-print(f"Loading IPC marker {name}...")
+print("Loading IPC marker...")
 if marker == '':
     file_suffix = '_all'
 elif marker == 'gsr':
@@ -81,7 +81,8 @@ elif marker == 'gsr':
 else:
     file_suffix = marker
 IPC_file = HDF5FeatureStorage(uri=ipc_path/f"IPC{file_suffix}.hdf5")
-IPC_all = IPC_file.read_df(name)
+IPC_all = IPC_file.read_df("BOLD_IPC_Schaefer_fc")
+# IPC_all = IPC_file.read_df(name)
 
 events = pd.read_csv(events_path / "all_events.csv")
 events = events.set_index(['subject', 'timepoint'])
