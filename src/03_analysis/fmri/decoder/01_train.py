@@ -141,6 +141,11 @@ valid_features = [  # TODO
     "IPCnoLowOrder_INTERNETWORK",
     "IPCnoLowOrder_ONLYCORTICALNETWORKS",
 
+    "DISTANCES",
+    "DISTANCES_distance",
+
+    "DISTANCES_cluster_assigments",
+
     "GSgm",
     "GSgm_mean",
     "GSgm_power",
@@ -500,6 +505,14 @@ for t_feature in features_args:
                     f"{t_feature_expand}_{t_subfeature.lower()}.*"
                 ]
             )
+        elif t_subfeature in ["distance", "cluster_assigments"]:
+            X.append(f"{t_feature}_{t_subfeature.lower()}.*")
+            if t_feature not in X_types:
+                X_types[t_feature] = []
+            X_types[f"{t_feature}"].extend([
+                    f"{t_feature}_{t_subfeature.lower()}.*"
+                ]
+            )
 
 
 ################################################
@@ -725,7 +738,7 @@ elif cv == "kfold":
     groups_col = "trial_group"
     df[groups_col] = trial_id
     cv_splitter = StratifiedGroupKFold(
-        n_splits=N_SPLITS, shuffle=True, random_state=42
+        n_splits=N_SPLITS, shuffle=True, random_state=123#42
     )  # no premade function to do REPEATED stratified GROUP k fold
     for train_test in cv_splitter.split(df, df["response_prompt"], groups=df[groups_col]):
         train_idx, test_idx = train_test

@@ -3,7 +3,14 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from junifer.storage import HDF5FeatureStorage
-from junifer.onthefly import read_transform
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+
+from lib.read_transform import read_transform
+# from junifer.onthefly import read_transform
 
 ipc_path = Path("/data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC")
 storage = HDF5FeatureStorage(uri=ipc_path/"IPC_all.hdf5")
@@ -11,7 +18,7 @@ storage = HDF5FeatureStorage(uri=ipc_path/"IPC_all.hdf5")
 transformed_df = read_transform(
     storage,
     feature_name="BOLD_IPC_Schaefer_fc",
-    transform="bctpy_degrees_und",
+    transform="bctpy_strengths_und",
 )
 
 

@@ -129,10 +129,16 @@ def read_transform(
 
         # Warning about function usage
         if func_str not in [
+            "strengths_und_sign",
+            "community_louvain",
             "degrees_und",
+            "efficiency_wei",
             "strengths_und",
             "clustering_coef_wu",
             "eigenvector_centrality_und",
+            "betweenness_wei",
+            "edge_betweenness_wei",
+            "distance_wei",
         ]:
             warn_with_log(
                 f"You are about to use '{package}.{func_str}' which has not "
@@ -140,14 +146,40 @@ def read_transform(
                 " the code yourself."
             )
 
-        preprocessing = { #### My edits #TODO: check if to do by func_str or if it is easier to do by suffix alone (und, wu, etc)
-            # so far: binary vs weighted, directed vs. undirected, sign, diagnonal should be zero I think but check if for all 
-            # some need thresholding // https://sites.google.com/site/bctnet/all-help-headers?authuser=0
-            "degrees_und": lambda W: (
-                bct.threshold_proportional(np.abs(W), 0.2) > 0
-            ).astype(float),
-            "strengths_und": np.abs,
+        # Preprocessing functions for specific transforms
+        def _clean(W):
+            """Zero the diagonal (IPC diagonal is 1)."""
+            np.fill_diagonal(W, 0.0)
+            return W
+
+        def _abs(W):
+            return np.abs(_clean(W))
+
+        def _prop(W, p=0.2):
+            """Keep the strongest proportion p of |edges| (weighted, non-negative)."""
+            return bct.threshold_proportional(_abs(W), p)
+
+        def _lengths(W, p=0.2):
+            """|W| -> proportional threshold -> connection lengths (1 / w)."""
+            return bct.weight_conversion(_prop(W, p), "lengths")
+
+        preprocessing = {
+            # --- signed: keep + and - as they are ---
+            "strengths_und_sign": _clean,
+            "community_louvain": _clean,  # pass B="negative_sym" via transform_kw_args
+            # --- binary ---
+            "degrees_und": _prop,
+            "efficiency_wei": _prop,
+            # --- weighted, non-negative: abs ---
+            "strengths_und": _abs,
+            "clustering_coef_wu": _abs,
+            "eigenvector_centrality_und": _abs,
+            # --- path-based: need connection LENGTHS, not weights ---
+            "betweenness_wei": _lengths,
+            "edge_betweenness_wei": _lengths,
+            "distance_wei": _lengths,
         }
+
         try:
             func = getattr(bct, func_str)
         except AttributeError as err:
@@ -200,7 +232,9 @@ def read_transform(
                     good_idx = np.logical_and(good_rows, good_columns)
                     t_data = t_data[good_idx][:, good_idx]
 
-                prep = preprocessing.get(func_str, lambda W: W) #### My edits (#TODO)
+                prep = preprocessing.get(
+                    func_str, lambda W: W
+                )  #### My edits
                 t_data = prep(t_data)
                 output = func(
                     t_data,
@@ -208,7 +242,7 @@ def read_transform(
                     **transform_kw_args,
                 )
                 output_list.append(output)
-                element_list.append(label) #### My edits
+                element_list.append(label)  #### My edits
 
         # Create dataframe for index
         idx_df = pd.DataFrame(data=element_list)
