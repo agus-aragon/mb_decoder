@@ -31,8 +31,7 @@ from junifer.storage import HDF5FeatureStorage
 
 # %% Define
 data_path = Path("/data/project/mb_decoder/data/bids/mb_decoder/derivatives/junifer/IPC")
-task = 'rest' #'rest' 'ES'
-IPC_path = data_path / f"task-{task}"
+IPC_path = data_path
 distance = 'cosine'
 k = 4
 roi_order = np.array([
@@ -60,9 +59,11 @@ roi_order = np.array([
 
 # %% Load fc data & Prepro
 print("Loading fc data...")
-IPC_file = HDF5FeatureStorage(IPC_path / f"IPC_task-{task}_all.hdf5")
+IPC_file = HDF5FeatureStorage(uri=IPC_path / "IPC_all.hdf5")
 IPC_raw = IPC_file.read_df("BOLD_IPC_Schaefer_fc")
+IPC_raw = IPC_raw.xs("ES", level="task")
 
+#%%
 with open((Path(__file__).parent / "utils" / "column_headers.csv"), newline='') as f:
     reader = csv.reader(f)
     roi_names = [row for row in reader][0]
@@ -94,7 +95,8 @@ network_bounds = {
         "Lm": (51, 57),
         "VA": (57, 68),
         "DA": (68, 84),
-        "Vis": (84, 100),
+        "Vis": (84, 100)
+
 }
 
 n = 100  # Number of ROIs
