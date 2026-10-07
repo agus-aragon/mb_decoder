@@ -179,7 +179,7 @@ graph_metrics = [
     "EFFICIENCYWEIP02",
     "TRANSITIVITYWUP02",
     "BETWEENNESSWEIP02",
-    "EDGEBETWEENNESSWEIP02",
+    # "EDGEBETWEENNESSWEIP02",
     "DISTANCEWEIP02",
     # rich club (p = 0.2, klevel = 10)  # modify if defaults are not used
     "RICHCLUBWUP02K10",

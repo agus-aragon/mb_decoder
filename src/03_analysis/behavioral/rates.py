@@ -1,10 +1,4 @@
-## ## ##################### MB Rates ##################### ## ##
-# #
-# #
-# #
-# #
-################################################################
-# %%
+# %% ## ## ##################### Task-ES Mental States Rates ##################### ## ##
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,12 +7,15 @@ from pathlib import Path
 
 main_path = Path("/data/project/mb_decoder/")
 db_path = main_path / "data" / "bids" / "mb_decoder"
-out_path = main_path / "output" / "03_analysis" / "behavioral" / "mb_rates"
+out_path = main_path / "output" / "03_analysis" / "behavioral" / "rates"
 out_path.mkdir(parents=True, exist_ok=True)
 
 n_probes = 50
 colors = dict(
-    Blank="#EEB42D", Sleep="#EF4747", Thought="#1FA1CD", Sensation="#5ECB57"
+    Blank="#EEB42D", 
+    Sleep="#EF4747", 
+    Thought="#1FA1CD", 
+    Sensation="#5ECB57"
 )
 
 # %%
@@ -54,6 +51,20 @@ response_counts = (
 )
 
 response_counts["percentage"] = response_counts["count"] / n_probes * 100
+
+df_freqs = response_counts.pivot(
+    index="subject",
+    columns="response_mental_state",
+    values=["count", "percentage"],
+)
+df_freqs.columns = [
+    f"{state.lower()}_{measure}" for measure, state in df_freqs.columns
+]
+
+df_freqs = df_freqs.reset_index()
+df_freqs.to_csv(out_path / "rates_task-ES.tsv", sep="\t",  index=False)
+
+# %% Plot
 plt.figure(figsize=(12, 6))
 sns.barplot(
     x="subject",
@@ -99,7 +110,6 @@ plt.tight_layout()
 plt.savefig(out_path / "ms_rate.png")
 plt.show()
 
-response_counts.to_csv(out_path / "response_counts.csv")
 
 # %%
 subj_no_mb_reports = response_counts[
@@ -138,14 +148,20 @@ plt.show()
 
 
 # %%
-response_counts['MS_flag'] = np.where(
-    response_counts['response_mental_state'].astype(str).str.contains('Blank', case=False, na=False),
-    'Blank',
-    'MS'
+response_counts["MS_flag"] = np.where(
+    response_counts["response_mental_state"]
+    .astype(str)
+    .str.contains("Blank", case=False, na=False),
+    "Blank",
+    "MS",
 )
 
 # 2. Compress counts: group by subject and MS_flag, then sum counts
-compressed_counts = response_counts.groupby(['subject', 'MS_flag'])['count'].sum().unstack(fill_value=0)
+compressed_counts = (
+    response_counts.groupby(["subject", "MS_flag"])["count"]
+    .sum()
+    .unstack(fill_value=0)
+)
 
 # 3. Convert counts to proportions (0.0 to 1.0)
 prop_df = compressed_counts.div(compressed_counts.sum(axis=1), axis=0)
@@ -153,21 +169,19 @@ prop_df = compressed_counts.div(compressed_counts.sum(axis=1), axis=0)
 # 4. Plot 100% stacked bar chart
 fig, ax = plt.subplots(figsize=(10, 5))
 
-prop_df[['MS', 'Blank']].plot(
-    kind='bar',
-    stacked=True, 
-    color=['navy', 'gold'], 
-    ax=ax,
-    width=0.6
+prop_df[["MS", "Blank"]].plot(
+    kind="bar", stacked=True, color=["navy", "gold"], ax=ax, width=0.6
 )
 
 # Formatting
-ax.legend(['MS', 'Blank'], bbox_to_anchor=(1.02, 1), loc='upper left', frameon=True)
-ax.axhline(0.5, color='black', linestyle='--', linewidth=1)  # 50% chance line
-ax.set_ylabel('Sample Proportion')
-ax.set_xlabel('Participants')
+ax.legend(
+    ["MS", "Blank"], bbox_to_anchor=(1.02, 1), loc="upper left", frameon=True
+)
+ax.axhline(0.5, color="black", linestyle="--", linewidth=1)  # 50% chance line
+ax.set_ylabel("Sample Proportion")
+ax.set_xlabel("Participants")
 ax.set_ylim(-0.02, 1.02)
-plt.xticks(rotation=90, ha='right')
+plt.xticks(rotation=90, ha="right")
 
 plt.tight_layout()
 plt.savefig(out_path / "proportion_MB_vs_MS.png")

@@ -2,7 +2,6 @@
 # Documentation at: https://sites.google.com/site/bctnet/all-help-headers?authuser=0
 import re
 import pandas as pd
-from junifer.storage import HDF5FeatureStorage
 from pathlib import Path
 import datatable as dt
 from argparse import ArgumentParser
@@ -134,7 +133,6 @@ for name, metric_frames in outputs.items():
     df = pd.concat(metric_frames.values(), axis=1)
     if not df.columns.is_unique:
         raise ValueError(f"Duplicated column names in {name}.")
-    print(f"{name}: joined {len(metric_frames)} metrics -> {df.shape}")
     print(f"{name}: joined {len(metric_frames)} metrics -> {df.shape}")
  
     # Keep only task-ES and join events (once)
