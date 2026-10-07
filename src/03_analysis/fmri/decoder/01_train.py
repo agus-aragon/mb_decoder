@@ -50,8 +50,7 @@ parser.add_argument(
     type=str,
     choices=valid_targets,
     help=(
-        "Target state vs. MS or ALL"
-        " (e.g., BlankvsMS Blank vs Mental States)",
+        "Target state vs. MS or ALL (e.g., BlankvsMS Blank vs Mental States)",
     ),
     required=True,
 )
@@ -104,7 +103,6 @@ valid_features = [  # TODO
     "IPC_INTERNETWORK",
     "IPC_ONLYCORTICALNETWORKS",
     "IPC_ONLYNETWORKS",
-
     "IPCgsr",
     "IPCgsr_DEFAULT",
     "IPCgsr_VIS",
@@ -117,7 +115,6 @@ valid_features = [  # TODO
     "IPCgsr_INTERNETWORK",
     "IPCgsr_ONLYCORTICALNETWORKS",
     "IPCgsr_ONLYNETWORKS",
-
     "IPCnoHighOrder",
     "IPCnoHighOrder_VIS",
     "IPCnoHighOrder_SOMMOT",
@@ -125,13 +122,11 @@ valid_features = [  # TODO
     "IPCnoHighOrder_INTERNETWORK",
     "IPCnoHighOrder_ONLYCORTICALNETWORKS",
     "IPCnoHighOrder_ONLYNETWORKS",
-
     "IPCnoLowOrdernoAttLimb",
     "IPCnoLowOrdernoAttLimb_DEFAULT",
     "IPCnoLowOrdernoAttLimb_CONT",
     "IPCnoLowOrdernoAttLimb_INTERNETWORK",
     "IPCnoLowOrdernoAttLimb_ONLYCORTICALNETWORKS",
-
     "IPCnoLowOrder",
     "IPCnoLowOrder_DEFAULT",
     "IPCnoLowOrder_CONT",
@@ -140,33 +135,63 @@ valid_features = [  # TODO
     "IPCnoLowOrder_SALVENTATTN",
     "IPCnoLowOrder_INTERNETWORK",
     "IPCnoLowOrder_ONLYCORTICALNETWORKS",
-
     "DISTANCES",
     "DISTANCES_distance",
-
     "DISTANCES_cluster_assigments",
-
     "GSgm",
     "GSgm_mean",
     "GSgm_power",
     "GSgm_derivative",
-
     "GSwm",
     "GSwm_mean",
     "GSwm_power",
     "GSwm_derivative",
-
     "GScsf",
     "GScsf_mean",
     "GScsf_power",
     "GScsf_derivative",
-
     "GSbrain",
     "GSbrain_mean",
     "GSbrain_power",
     "GSbrain_derivative",
-
 ]
+
+
+graph_families = [
+    "GRAPHipc",
+    "GRAPHipcgsr",
+    "GRAPHipcnoHighOrder",
+    "GRAPHipcnoLowOrder",
+    "GRAPHipcnoLowOrdernoAttLimb",
+]
+graph_families += [f"{family}sum" for family in graph_families]
+
+graph_metrics = [
+    # no threshold
+    "STRENGTHSUNDSIGN",
+    "COMMUNITYLOUVAIN",
+    "STRENGTHSUND",
+    "CLUSTERINGCOEFWU",
+    "EIGENVECTORCENTRALITYUND",
+    "ASSORTATIVITYWEI",
+    # thresholded (p = 0.2 -> P02)  # modify if defaults are not used
+    "DEGREESUNDP02",
+    "EFFICIENCYWEIP02",
+    "TRANSITIVITYWUP02",
+    "BETWEENNESSWEIP02",
+    "EDGEBETWEENNESSWEIP02",
+    "DISTANCEWEIP02",
+    # rich club (p = 0.2, klevel = 10)  # modify if defaults are not used
+    "RICHCLUBWUP02K10",
+]
+
+valid_features += graph_families
+valid_features += [
+    f"{family}_{metric}"
+    for family in graph_families
+    for metric in graph_metrics
+]
+
 parser.add_argument(
     "--feature",
     metavar="feature",
@@ -450,12 +475,15 @@ for t_feature in features_args:
         t_feature = feature_splits[0]
         t_subfeature = feature_splits[1]
 
+    # Using all features from that feature family
     if t_subfeature is None:
         X.append(f"{t_feature}_.*")
 
         # TODO: add subfeature type logic here
         # For now, we just use the feature family as the type
         X_types[t_feature] = [f"{t_feature}_.*"]
+    
+    # Loading only some subfeatures from that feature family
     else:
         if t_subfeature in [
             "DEFAULT",
@@ -478,16 +506,19 @@ for t_feature in features_args:
             )
             if t_feature not in X_types:
                 X_types[t_feature] = []
-            X_types[f"{t_feature}"].extend([
+            X_types[f"{t_feature}"].extend(
+                [
                     f"{t_feature}_(DEFAULT|VIS|CONT|DORSATTN|LIMBIC|SALVENTATTN|SOMMOT)_.*"
-                ])
+                ]
+            )
         elif t_subfeature == "ONLYNETWORKS":
             X.append(
                 f"{t_feature}_(DEFAULT|VIS|CONT|DORSATTN|LIMBIC|SALVENTATTN|SOMMOT|SUBCORTEX)_.*"
             )
             if t_feature not in X_types:
                 X_types[t_feature] = []
-            X_types[f"{t_feature}"].extend([
+            X_types[f"{t_feature}"].extend(
+                [
                     f"{t_feature}_(DEFAULT|VIS|CONT|DORSATTN|LIMBIC|SALVENTATTN|SOMMOT|SUBCORTEX)_.*"
                 ]
             )
@@ -501,18 +532,21 @@ for t_feature in features_args:
             X.append(f"{t_feature_expand}_{t_subfeature.lower()}.*")
             if t_feature_expand not in X_types:
                 X_types[t_feature_expand] = []
-            X_types[f"{t_feature_expand}"].extend([
-                    f"{t_feature_expand}_{t_subfeature.lower()}.*"
-                ]
+            X_types[f"{t_feature_expand}"].extend(
+                [f"{t_feature_expand}_{t_subfeature.lower()}.*"]
             )
         elif t_subfeature in ["distance", "cluster_assigments"]:
             X.append(f"{t_feature}_{t_subfeature.lower()}.*")
             if t_feature not in X_types:
                 X_types[t_feature] = []
-            X_types[f"{t_feature}"].extend([
-                    f"{t_feature}_{t_subfeature.lower()}.*"
-                ]
+            X_types[f"{t_feature}"].extend(
+                [f"{t_feature}_{t_subfeature.lower()}.*"]
             )
+        elif t_subfeature in graph_metrics:
+            X.append(f"{t_feature}_{t_subfeature}_.*")
+            if t_feature not in X_types:
+                X_types[t_feature] = []
+            X_types[f"{t_feature}"].extend([f"{t_feature}_{t_subfeature}_.*"])
 
 
 ################################################
@@ -734,18 +768,26 @@ if cv == "loso":
 
 elif cv == "kfold":
     df = df.reset_index()
-    trial_id = df['subject'].astype(str) + "_trial-" + df['n_trial'].astype(str)
+    trial_id = (
+        df["subject"].astype(str) + "_trial-" + df["n_trial"].astype(str)
+    )
     groups_col = "trial_group"
     df[groups_col] = trial_id
     cv_splitter = StratifiedGroupKFold(
-        n_splits=N_SPLITS, shuffle=True, random_state=123#42
+        n_splits=N_SPLITS,
+        shuffle=True,
+        random_state=42,  # TEST_SEED 123#
     )  # no premade function to do REPEATED stratified GROUP k fold
-    for train_test in cv_splitter.split(df, df["response_prompt"], groups=df[groups_col]):
+    for train_test in cv_splitter.split(
+        df, df["response_prompt"], groups=df[groups_col]
+    ):
         train_idx, test_idx = train_test
         logger.info(
             f"KFold: {len(train_idx)} train rows | {len(test_idx)} test rows"
         )
-        n_pos_train = (df.iloc[train_idx]["response_prompt"] == pos_labels).sum()
+        n_pos_train = (
+            df.iloc[train_idx]["response_prompt"] == pos_labels
+        ).sum()
         n_pos_test = (df.iloc[test_idx]["response_prompt"] == pos_labels).sum()
         logger.info(
             f"Class balance: {n_pos_train} pos / {len(train_idx)} train | "

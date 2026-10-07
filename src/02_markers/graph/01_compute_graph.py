@@ -1,12 +1,15 @@
 # %%
 # Documentation at: https://sites.google.com/site/bctnet/all-help-headers?authuser=0
 
-import pandas as pd
+import threading
+import time
+from contextlib import contextmanager
+from datetime import timedelta
 from junifer.storage import HDF5FeatureStorage
 from pathlib import Path
-import datatable as dt
 from argparse import ArgumentParser
 from joblib import Parallel, delayed
+from sqlalchemy import func
 
 from my_onthefly import read_transform
 # from junifer.onthefly import read_transform
@@ -20,11 +23,11 @@ ALL_FUNCS = [
     "community_louvain",
     "degrees_und",
     "efficiency_wei",
-    "strengths_und",
+    # "strengths_und",
     "clustering_coef_wu",
     "eigenvector_centrality_und",
     "betweenness_wei",
-    "edge_betweenness_wei",
+    # "edge_betweenness_wei",
     "distance_wei",
     "assortativity_wei",
     "transitivity_wu",
@@ -42,6 +45,37 @@ THRESHOLDED = {
     "edge_betweenness_wei",
     "distance_wei",
 }
+# Time helpers
+HEARTBEAT_SECONDS = 300 # Every function prints a "still running" line this often (seconds)
+
+def log(msg):
+    """Print with a timestamp, flushed so it shows up in log files at once."""
+    print(f"{time.strftime('%H:%M:%S')} {msg}", flush=True)
+ 
+ 
+def fmt_time(seconds):
+    """Format seconds as H:MM:SS."""
+    return str(timedelta(seconds=round(seconds)))
+ 
+ 
+@contextmanager
+def heartbeat(label, interval=HEARTBEAT_SECONDS):
+    """Print a 'still running' line every `interval` s while the block runs."""
+    stop = threading.Event()
+    t0 = time.perf_counter()
+ 
+    def beat():
+        while not stop.wait(interval):
+            log(f"[{label}] still running ... {fmt_time(time.perf_counter() - t0)} elapsed")
+ 
+    thread = threading.Thread(target=beat, daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join()
+ 
 
 parser = ArgumentParser(
     description="Calculate graph metrics from IPC matrices."
@@ -121,14 +155,13 @@ data_path = (
 
 
 ipc_path = data_path / "junifer" / f"IPC{marker}"
-events_path = data_path / "events"
 outpath = ipc_path.parent / f"Graph_IPC{marker}"
 
 # Validation of paths
 if not ipc_path.exists():
     raise FileNotFoundError(f"IPC path {ipc_path} does not exist.")
 else:
-    print(f"Path: {ipc_path}")
+    log(f"Path: {ipc_path}")
 outpath.mkdir(parents=True, exist_ok=True)
 
 if marker == "":
@@ -143,6 +176,7 @@ def run_function(func):
     """Compute one BCT function and export it (one job per function)."""
     # Arguments for read_transform: each optional parameter is only passed
     # to the functions that use it
+    t_start = time.perf_counter()
 
     transform_kw_args = {}
     preprocess_kw_args = {}
@@ -161,36 +195,47 @@ def run_function(func):
     if func == "rich_club_wu":
         outname += f"k{klevel}"
 
-    print(
+    log(
         f"[{func}] computing "
         f"(transform_kw_args={transform_kw_args}, "
         f"preprocess_kw_args={preprocess_kw_args}) ..."
     )
 
     # Load data
-    print(f"[{func}] loading events and IPC marker...")
+    log(f"[{func}] loading IPC {marker} marker...")
     storage = HDF5FeatureStorage(uri=ipc_path / f"IPC{file_suffix}.hdf5")
-    events = pd.read_csv(events_path / "all_events.csv")
-    events = events.set_index(["subject", "timepoint"])
 
-    print(f"[{func}] calculating...")
+    log(f"[{func}] calculating...")
+    with heartbeat(func):
+        df = read_transform(
+            storage,
+            feature_name=FEATURE_NAME,
+            transform=f"bctpy_{func}",
+            transform_kw_args=transform_kw_args,
+            preprocess_kw_args=preprocess_kw_args,
+        )
+    t_compute = time.perf_counter() - t_start
 
-    df = read_transform(
-        storage,
-        feature_name=FEATURE_NAME,
-        transform=f"bctpy_{func}",
-        transform_kw_args=transform_kw_args,
-        preprocess_kw_args=preprocess_kw_args,
-    )
-    print(f"[{func}] result shape: {df.shape}")
-    print(f"[{func}] column names: {df.columns.tolist()[:10]} ...")
+    log(f"[{func}] computed in {fmt_time(t_compute)} | shape: {df.shape}")
+    log(f"[{func}] column names: {df.columns.tolist()[:10]} ...")
 
     ## Exported as junifer marker -> Junifer folder
-    print(f"[{func}] exporting to HDF5 to {outpath}/{outname}.hdf5...")
+    log(f"[{func}] exporting to HDF5 to {outpath}/{outname}.hdf5...")
     df.to_hdf(outpath / f"{outname}.hdf5", key="df", mode="w")
-
-print(f"Computing BCT functions: {funcs} (n_jobs={n_jobs})")
-Parallel(n_jobs=n_jobs)(delayed(run_function)(f) for f in funcs)
-print("Done!")
-
+    elapsed = time.perf_counter() - t_start
+    log(f"[{func}] done in {fmt_time(elapsed)}")
+    return func, elapsed 
+ 
+log(f"Computing BCT functions: {funcs} (n_jobs={n_jobs})")
+t_total = time.perf_counter()
+results = Parallel(n_jobs=n_jobs)(delayed(run_function)(f) for f in funcs)
+total = time.perf_counter() - t_total
+ 
+# Summary
+log("Time per function (slowest first):")
+for func, seconds in sorted(results, key=lambda r: r[1], reverse=True):
+    log(f"  {func:28s} {fmt_time(seconds)}")
+log(f"Sum of function times: {fmt_time(sum(s for _, s in results))}")
+log(f"Total wall time:       {fmt_time(total)}")
+log("Done!")
 # %%

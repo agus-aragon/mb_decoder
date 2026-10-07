@@ -86,7 +86,7 @@ def read_transform(
     This function has been only tested for:
 
     * ``bct.degrees_und``
-    * ``bct.strengths_und``
+    * ``bct.strengths_und`` 
     * ``bct.clustering_coef_wu``
     * ``bct.eigenvector_centrality_und``
 
@@ -101,6 +101,7 @@ def read_transform(
     * ``bct.assortativity_wei``
     * ``bct.transitivity_wu``
     * ``bct.rich_club_wu``
+    * ``density_und_sign`` (costum)
 
     Using other functions may fail and require tweaking.
 
@@ -187,6 +188,7 @@ def read_transform(
             "assortativity_wei",
             "transitivity_wu",
             "rich_club_wu",
+            "density_und_sign",
         ]:
             warn_with_log(
                 f"You are about to use '{package}.{func_str}' which has not "
@@ -238,12 +240,20 @@ def read_transform(
             """|W| -> proportional threshold -> connection lengths (1 / w)."""
             return bct.weight_conversion(_thres(W, p), "lengths")
 
+        # Calculate Npositive and Nnegative (no built in function in bctpy ??)
+        def _density_sign(W):
+            """Numbers of positive and negative links (bct.density_und per sign)."""
+            k_pos = bct.density_und(np.clip(W, 0, None))[2]
+            k_neg = bct.density_und(np.clip(-W, 0, None))[2]
+            return k_pos, k_neg
+        
         preprocessing = {
             # --- signed ---
             "strengths_und_sign": _clean,
             "community_louvain": _clean,
+            "density_und_sign": _clean,
             # --- weighted, non-negative: abs ---
-            "strengths_und": _abs,
+            # "strengths_und": _abs,
             "clustering_coef_wu": _abs,
             "eigenvector_centrality_und": _abs,
             "assortativity_wei": _abs,  # flag=0 (default) is undirected
@@ -274,12 +284,13 @@ def read_transform(
         # Postprocessing for reshaping the output and defining column names
         headers = list(stored_data["row_headers"])
         N = len(headers)
+
         # every post-processing function receives the raw output `o` of
         # the bct function for one matrix and must return a 1D array.
         postprocessing = {
             "strengths_und_sign": lambda o: np.concatenate(
-                [o[0], o[1]]
-            ),  # Spos, Sneg
+                [o[0], o[1], [o[2], o[3]]]
+            ),  # Spos, Sneg, Vpos, Vneg
             "community_louvain": lambda o: np.array(
                 [o[1], len(np.unique(o[0]))]
             ),  # community labels are arbitrary and not comparable across t
@@ -293,22 +304,27 @@ def read_transform(
             "efficiency_wei": np.atleast_1d,
             "assortativity_wei": np.atleast_1d,
             "transitivity_wu": np.atleast_1d,
+            "density_und_sign": np.array,
         }
         columns = {
             "strengths_und_sign": [f"pos_{h}" for h in headers]
-            + [f"neg_{h}" for h in headers],
+            + [f"neg_{h}" for h in headers] + ["total_pos", "total_neg"],
             "community_louvain": ["Q", "n_modules"],
             "distance_wei": ["mean_path_length"],
             "efficiency_wei": ["efficiency_wei"],
             "assortativity_wei": ["assortativity_wei"],
             "transitivity_wu": ["transitivity_wu"],
+            "density_und_sign": ["n_pos_links", "n_neg_links"],
+
+
         }
         if func_str == "rich_club_wu" and "klevel" in transform_kw_args:
             columns["rich_club_wu"] = [
                 f"k={k}" for k in range(1, transform_kw_args["klevel"] + 1)
             ]
+        custom_funcs = {"density_und_sign": _density_sign}
         try:
-            func = getattr(bct, func_str)
+            func = custom_funcs.get(func_str) or getattr(bct, func_str)
         except AttributeError as err:
             raise_error(msg=str(err), klass=AttributeError)
 
