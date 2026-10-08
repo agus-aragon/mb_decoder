@@ -103,6 +103,7 @@ valid_features = [  # TODO
     "IPC_INTERNETWORK",
     "IPC_ONLYCORTICALNETWORKS",
     "IPC_ONLYNETWORKS",
+
     "IPCgsr",
     "IPCgsr_DEFAULT",
     "IPCgsr_VIS",
@@ -115,6 +116,7 @@ valid_features = [  # TODO
     "IPCgsr_INTERNETWORK",
     "IPCgsr_ONLYCORTICALNETWORKS",
     "IPCgsr_ONLYNETWORKS",
+
     "IPCnoHighOrder",
     "IPCnoHighOrder_VIS",
     "IPCnoHighOrder_SOMMOT",
@@ -122,11 +124,13 @@ valid_features = [  # TODO
     "IPCnoHighOrder_INTERNETWORK",
     "IPCnoHighOrder_ONLYCORTICALNETWORKS",
     "IPCnoHighOrder_ONLYNETWORKS",
+
     "IPCnoLowOrdernoAttLimb",
     "IPCnoLowOrdernoAttLimb_DEFAULT",
     "IPCnoLowOrdernoAttLimb_CONT",
     "IPCnoLowOrdernoAttLimb_INTERNETWORK",
     "IPCnoLowOrdernoAttLimb_ONLYCORTICALNETWORKS",
+
     "IPCnoLowOrder",
     "IPCnoLowOrder_DEFAULT",
     "IPCnoLowOrder_CONT",
@@ -135,6 +139,7 @@ valid_features = [  # TODO
     "IPCnoLowOrder_SALVENTATTN",
     "IPCnoLowOrder_INTERNETWORK",
     "IPCnoLowOrder_ONLYCORTICALNETWORKS",
+    
     "DISTANCES",
     "DISTANCES_distance",
     "DISTANCES_cluster_assigments",
@@ -179,6 +184,7 @@ graph_metrics = [
     "EFFICIENCYWEIP02",
     "TRANSITIVITYWUP02",
     "BETWEENNESSWEIP02",
+    "DENSITYUNDSIGN",
     # "EDGEBETWEENNESSWEIP02",
     "DISTANCEWEIP02",
     # rich club (p = 0.2, klevel = 10)  # modify if defaults are not used
@@ -256,6 +262,16 @@ parser.add_argument(
     help="Run a fast sanity-check pass with less subjects.",
 )
 
+parser.add_argument(
+    "--aggregate",
+    metavar="aggregate",
+    type=str,
+    choices=["trial"],
+    default=None,
+    help="Average the TRs of each trial into one sample (one row per "
+    "subject and trial). Default: keep one sample per TR.",
+)
+
 args = parser.parse_args()
 
 N_REPEATS = 5
@@ -272,6 +288,7 @@ dimred = args.dimred[0] if args.dimred is not None else None
 data_path = args.data
 out_path = args.out_path
 IS_DEBUG_TEST = args.debug
+aggregate = args.aggregate
 
 
 # %%
@@ -284,6 +301,8 @@ window_end = args.window[1]
 
 features_suffix = "_".join(features_args)
 dimred_suffix = f"_dimred-{dimred}" if dimred else ""
+aggregate_suffix = f"_agg-{aggregate}" if aggregate else ""
+
 
 filename_path = f"cv_{cv}"
 filename_suffix = (
@@ -292,6 +311,7 @@ filename_suffix = (
     f"window-{window_start}-{window_end}_"
     f"features-{features_suffix}"
     f"{dimred_suffix}"
+    f"{aggregate_suffix}"
 )
 
 
@@ -346,6 +366,16 @@ if IS_DEBUG_TEST:
 
 
 ## Read features
+TASK_COLS = [
+            "n_trial",
+            "event",
+            "seconds_to_probe",
+            "response_prompt",
+            "rt_prompt",
+            "response_arousal",
+            "rt_arousal",
+        ]
+
 df = None
 read_features = []
 for this_feature in features_args:
@@ -360,15 +390,7 @@ for this_feature in features_args:
         col: f"{this_feature}_{col}"
         for col in t_df.columns
         if col
-        not in [
-            "n_trial",
-            "event",
-            "seconds_to_probe",
-            "response_prompt",
-            "rt_prompt",
-            "response_arousal",
-            "rt_arousal",
-        ]
+        not in TASK_COLS
     }
     t_df = t_df.rename(columns=col_rename)
     if df is None:
@@ -453,6 +475,26 @@ logger.info(
     f"Target Window: {window_start}s - {window_end}s | Total Obs: {len(df)} | "
     f"Avg TRs/Trial: {counts.mean():.2f} | {counts.value_counts().to_dict()}"
 )
+# Aggregate TRs of the trial into 1 value (if specified)
+if aggregate == "trial":
+    keys = ["subject", "n_trial"]
+ 
+    feature_cols = [c for c in df.columns if c not in TASK_COLS]
+    first_cols = [
+        c
+        for c in TASK_COLS
+        if c in df.columns and c not in ("n_trial", "seconds_to_probe")
+    ]
+    n_trs = len(df)
+    grouped = df.groupby(keys)
+    df_agg = grouped[feature_cols].mean().join(grouped[first_cols].first())
+
+    df = df_agg.reset_index("n_trial")
+    logger.info(
+        f"Aggregated per trial: {n_trs} TRs -> {len(df)} samples "
+        f"({df.index.nunique()} subjects)"
+    )
+
 
 target1_freq = df["response_prompt"].value_counts()[pos_labels]
 target0_freq = df["response_prompt"].value_counts().sum() - target1_freq
@@ -835,6 +877,8 @@ scores["target"] = target_args
 scores["window"] = f"{window_start}-{window_end}"
 scores["features"] = features_suffix
 scores["dimred"] = dimred if dimred else "None"
+scores["aggregate"] = aggregate if aggregate else "None"
+
 
 logger.info(f"Scores shape: {scores.shape}")
 scores.to_csv(out_path / f"{filename_suffix}_scores.csv", sep=";")

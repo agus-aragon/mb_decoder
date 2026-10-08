@@ -29,9 +29,10 @@ ALL_FUNCS = [
     "betweenness_wei",
     # "edge_betweenness_wei",
     "distance_wei",
+    "density_und_sign",
     "assortativity_wei",
     "transitivity_wu",
-    "rich_club_wu",
+    # "rich_club_wu",
 ]
 
 # Functions that need p thresholding. Keep in sync with the `preprocessing`
@@ -39,7 +40,7 @@ ALL_FUNCS = [
 THRESHOLDED = {
     "degrees_und",
     "efficiency_wei",
-    "rich_club_wu",
+    # "rich_club_wu",
     "transitivity_wu",
     "betweenness_wei",
     "edge_betweenness_wei",

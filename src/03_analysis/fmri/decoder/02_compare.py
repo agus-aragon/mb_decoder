@@ -52,56 +52,21 @@ parser.add_argument(
     metavar="model",
     type=str,
     choices=valid_models,
-    help="Model to use",
+    nargs="+",
+    help="Model to plot (default: all)",
     required=False,
 )
 
-# valid_features = [  # TODO
-#     "IPC",
-#     "IPC_DEFAULT",
-#     "IPC_VIS",
-#     "IPC_CONT",
-#     "IPC_DORSATTN",
-#     "IPC_LIMBIC",
-#     "IPC_SALVENTATTN",
-#     "IPC_SOMMOT",
-#     "IPC_SUBCORTEX",
-#     "IPC_INTERNETWORK",
-#     "IPC_ONLYCORTICALNETWORKS",
-#     "IPC_ONLYNETWORKS",
-#     "GSgm",
-#     "GSgm_mean",
-#     "GSgm_power",
-#     "GSgm_derivative",
-#     "GSwm",
-#     "GSwm_mean",
-#     "GSwm_power",
-#     "GSwm_derivative",
-#     "GScsf",
-#     "GScsf_mean",
-#     "GScsf_power",
-#     "GScsf_derivative",
-#     "GSbrain",
-#     "GSbrain_mean",
-#     "GSbrain_power",
-#     "GSbrain_derivative",
-
-# ]
-# parser.add_argument(
-#     "--feature",
-#     metavar="feature",
-#     type=str,
-#     choices=valid_features,
-#     nargs="+",
-#     help="Features to use (METRIC_subtype (eg., IPC or IPC_DMN))",
-#     required=False,
-# )
-
-# parser.add_argument(
-#     "--subtype",
-#     action="store_true",
-#     help="Compare models with different subtypes of the same feature (eg., models for each subnetwork of IPC)",
-# )
+parser.add_argument(
+    "--features",
+    metavar="features",
+    type=str,
+    nargs="+",
+    help="Only runs whose features contain ANY of these values ANYWHERE "
+    "(e.g. 'GS' also matches IPC_ONLYCORTICALNETWORKS_GSbrain). Default: all.",
+    required=False,
+    default=None,
+)
 
 parser.add_argument(
     "--dimred",
@@ -146,15 +111,35 @@ parser.add_argument(
 args = parser.parse_args()
 
 target_args = args.target
-model = args.model if args.model is not None else None
-# features_args = args.feature if args.feature is not None else None
 cv = args.cv
 data_path = args.data
-# IS_SUBTYPE = args.subtype
 dimred = args.dimred
 IS_DISPLAY = args.display
 IS_SAVE = args.save
+models = args.model
+features = args.features
 
+FAMILY_PREFIXES = ("IPC", "GRAPH", "GS", "DISTANCES")
+MAX_SUB_LEN = 8
+CUT_LEN = 4
+METRIC_SEP = "+"
+legend = {} 
+ 
+def short_features(features):
+    groups, family = {}, None
+    for token in features.split("_"):
+        if token.startswith(FAMILY_PREFIXES):
+            family = token
+            groups.setdefault(family, [])
+        elif family is not None:
+            groups[family].append(
+                token if len(token) <= MAX_SUB_LEN else token[:CUT_LEN]
+            )
+    parts = [
+        f"{fam}_{METRIC_SEP.join(subs)}" if subs else fam
+        for fam, subs in groups.items()
+    ]
+    return METRIC_SEP.join(parts) or features
 # %%
 ################################################
 # Directories & Data
@@ -170,40 +155,53 @@ window_str = f"{window_start}-{window_end}"
 out_path = data_path / "comparison"
 out_path.mkdir(parents=True, exist_ok=True)
 
-filename_pattern = "model-"
-filename_pattern += f"{model}_" if model is not None else "*"
+filename_pattern = "model-*"
 filename_pattern += f"_target-{target_args}"
 filename_pattern += f"_window-{window_start}-{window_end}"
 filename_pattern += "_features-*"
 
-# if IS_SUBTYPE:
-#     for t_feature in features_args:
-#         filename_pattern += rf"{t_feature}^_[^_]+$"
-# elif features_args:
-#     for t_feature in features_args:
-#         filename_pattern += f"{t_feature}_"
-# else:
-#     filename_pattern += f"*_"
-
 filename_pattern += "_scores.csv"
 scores = {}
 i = 0
+
+
 for model_file in sorted(models_path.glob(filename_pattern)):
     i += 1
     if dimred == "no" and "_dimred-" in str(model_file):
         continue
     if dimred == "yes" and "_dimred-" not in str(model_file):
         continue
-    print(f"Loading model {i}: {model_file}")
-    df = pd.read_csv(model_file, sep=";", index_col=0)
+    is_agg = "_agg-" in model_file.name
+    agg_label = "trial" if is_agg else "TR"
 
-    model_label = f"{df['model'].iloc[0]} | {df['features'].iloc[0]} | {df['dimred'].iloc[0]} "
+    df = pd.read_csv(model_file, sep=";", index_col=0)
+    full = df["features"].iloc[0]
+    feats = base = short_features(full)
+    n = 1
+    while legend.get(feats, full) != full:  # same short label, DIFFERENT run
+        n += 1  # (plot_scores would merge them into one group)
+        feats = f"{base}#{n}"
+    legend[feats] = full
+    if models and df["model"].iloc[0] not in models:
+        continue
+    if features and not any(f in df["features"].iloc[0] for f in features):
+        continue
+    print(f"Loading model {i}: {model_file}")
+
+    model_label = (
+        f"{df['model'].iloc[0]} | {feats} | "
+        f"{df['dimred'].iloc[0]} | {agg_label}"
+    )
     scores[model_file.stem] = df.assign(model=model_label, model_id=i)
 
 panel = plot_scores(*scores.values())
 
 filename = filename_pattern.replace("*", "ALL")
 filename = filename.replace(".csv","")
+if models:
+    filename += "_model-" + "-".join(models)
+if features:
+    filename += "_feature-" + "-".join(features)
 
 if IS_SAVE:
     panel.save(out_path / f"{filename}.html")
