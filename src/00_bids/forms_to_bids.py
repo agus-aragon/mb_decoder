@@ -54,8 +54,16 @@ EHI_cols = [col for col in forms.columns if col.startswith("EHI_")]
 forms[EHI_cols] = forms[EHI_cols].replace(EHI_mapping).astype("Int64")
 forms["EHI_score"] = forms[EHI_cols].sum(axis=1) / 10 * 100
 
-## SRMBQ
-SRMBQ_mapping = {
+
+## LMBS
+forms = forms.rename(
+    columns={
+        col: col.replace("SRMBQ_", "LMBS_")# Boulakis scale previously named SRMBQ_ during development
+        for col in forms.columns
+        if col.startswith("SRMBQ_")
+    }
+)
+LMBS_mapping = {
     "Almost never": 1,
     "Infrequently": 2,
     "Sometimes": 3,
@@ -67,10 +75,37 @@ SRMBQ_mapping = {
     "Souvent": 4,
     "Presque toujours": 5,
 }
-SRMBQ_cols = [col for col in forms.columns if col.startswith("SRMBQ_")]
-forms[SRMBQ_cols] = forms[SRMBQ_cols].replace(SRMBQ_mapping).astype("Int64")
-forms["SRMBQ_score"] = forms[SRMBQ_cols].sum(axis=1)
 
+LMBS_cols = [col for col in forms.columns if col.startswith("LMBS_")] 
+forms[LMBS_cols] = forms[LMBS_cols].replace(LMBS_mapping).astype("Int64")
+forms["LMBS_score"] = forms[LMBS_cols].sum(axis=1)
+
+subscale_items_lmbs = {
+    "LMBS_subscale_experience_of_blank": [
+        "LMBS_1",
+        "LMBS_7",
+        "LMBS_8",
+        "LMBS_11",
+        "LMBS_13",
+        "LMBS_15",
+    ],
+    "LMBS_subscale_memory_failure": [
+        "LMBS_3",
+        "LMBS_4",
+        "LMBS_5",
+        "LMBS_6",
+        "LMBS_17",
+
+    ],
+    "LMBS_subscale_stress_overflow": [
+        "LMBS_9",
+        "LMBS_10",
+    ],
+}
+
+for subscale_name, cols in subscale_items_lmbs.items():
+    forms[subscale_name] = forms[cols].sum(axis=1)
+   
 ## MBQ
 MBQ_mapping = {
     "Almost never": 1,
@@ -90,11 +125,12 @@ MBQ_cols = [col for col in forms.columns if col.startswith("MBQ_")]
 forms[MBQ_cols] = forms[MBQ_cols].replace(MBQ_mapping).astype("Int64")
 forms["MBQ_score"] = forms[MBQ_cols].sum(axis=1)
 
+
 ## MCQ30
 # Rename columns MCQ30_* to MCQ30_*
 forms = forms.rename(
     columns={
-        col: col.replace("MQC30_", "MCQ30_")
+        col: col.replace("MQC30_", "MCQ30_") #typo
         for col in forms.columns
         if col.startswith("MQC30_")
     }
@@ -486,7 +522,7 @@ participants_json = {
             -1: "Left",
         },
     },
-    "SRMBQ_1": {
+    "LMBS_1": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 1",
         "Description": "There are moments when I pay attention to nothing at all",
         "Levels": {
@@ -497,7 +533,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_2": {
+    "LMBS_2": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 2",
         "Description": "When I am tired of paying attention to someone speaking, my mind empties out",
         "Levels": {
@@ -508,7 +544,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_3": {
+    "LMBS_3": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 3",
         "Description": "I lose track of my thoughts and I can't remember what I was thinking",
         "Levels": {
@@ -519,7 +555,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_4": {
+    "LMBS_4": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 4",
         "Description": "When reading a book, I must reread pages because I ended at the end of the page I do not remember how I got there",
         "Levels": {
@@ -530,7 +566,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_5": {
+    "LMBS_5": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 5",
         "Description": "There are moments when I am sure that I had a thought, but I am not sure what",
         "Levels": {
@@ -541,7 +577,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_6": {
+    "LMBS_6": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 6",
         "Description": "There are moments when I know I was thinking of something, but I cannot recover it",
         "Levels": {
@@ -552,7 +588,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_7": {
+    "LMBS_7": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 7",
         "Description": "During the day, I notice that I am thinking of nothing",
         "Levels": {
@@ -563,7 +599,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_8": {
+    "LMBS_8": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 8",
         "Description": "When I am calm, it feels like my mind is empty",
         "Levels": {
@@ -574,7 +610,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_9": {
+    "LMBS_9": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 9",
         "Description": "My mind blanks when I am under pressure",
         "Levels": {
@@ -585,7 +621,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_10": {
+    "LMBS_10": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 10",
         "Description": "When something bad happens and I need to think of solutions, my mind goes blank",
         "Levels": {
@@ -596,7 +632,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_11": {
+    "LMBS_11": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 11",
         "Description": "When I am bored, I zone out without thinking of anything",
         "Levels": {
@@ -607,7 +643,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_12": {
+    "LMBS_12": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 12",
         "Description": "When I am sleepy, I easily forget what I am thinking about",
         "Levels": {
@@ -618,7 +654,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_13": {
+    "LMBS_13": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 13",
         "Description": "There are moments when it feels like I am not thinking about anything in particular",
         "Levels": {
@@ -629,7 +665,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_14": {
+    "LMBS_14": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 14",
         "Description": "When people ask me what I am thinking, I respond that I am thinking about nothing",
         "Levels": {
@@ -640,7 +676,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_15": {
+    "LMBS_15": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 15",
         "Description": "Periods of time can pass when I am not thinking of anything",
         "Levels": {
@@ -651,7 +687,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_16": {
+    "LMBS_16": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 16",
         "Description": "I notice myself staring at nothing without realizing how long it’s been",
         "Levels": {
@@ -662,7 +698,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_17": {
+    "LMBS_17": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 17",
         "Description": "I catch myself halfway through an action without knowing how I started it",
         "Levels": {
@@ -673,7 +709,7 @@ participants_json = {
             5: "Almost always",
         },
     },
-    "SRMBQ_18": {
+    "LMBS_18": {
         "LongName": "Self-reported Mind Blanking Questionnaire item 18",
         "Description": "During the day, I feel like I had brief time-skips, as if I missed the last few seconds",
         "Levels": {
@@ -1853,9 +1889,9 @@ participants_json = {
         "Description": "total score of the EHI. Right-handed > 40; Ambidextrous: 40 to -40; Left-handed < -40",
         "Units": "total score (addition)",
     },
-    "SRMBQ_score": {
+    "LMBS_score": {
         "LongName": "Self-reported Mind Blanking Questionnaire total score",
-        "Description": "total score of the SRMBQ",
+        "Description": "total score of the LMBS",
         "Units": "total score (addition)",
     },
     "MBQ_score": {
