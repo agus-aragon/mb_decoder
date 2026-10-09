@@ -649,7 +649,6 @@ elif dimred == "sfm_lasso":
 # Define model for binary clasification
 ################################################
 search_params = None
-predict_proba = "proba"
 
 if model_name in ["rf", "et"]:
     creator.add(model_name, class_weight="balanced")
@@ -666,7 +665,6 @@ elif model_name == "linearsvm":
         dual=False,
         penalty="l1",
     )
-    predict_proba = "decision"
 
 elif model_name == "gsrf":
     n_estimators = [200, 500]
@@ -713,7 +711,6 @@ elif model_name == "gslinearsvm":
         C=[0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 1000000],
         class_weight="balanced",
     )
-    predict_proba = "decision"
     search_params = {
         "kind": "grid",
         "scoring": "balanced_accuracy",
@@ -730,7 +727,6 @@ elif model_name == "linearsvchc":
         penalty="l1",
     )
     n_jobs = 1
-    predict_proba = "decision"
 
 elif model_name == "logithc":
     model = LogisticRegressionHeuristicC()
@@ -741,7 +737,6 @@ elif model_name == "logithc":
         penalty="l1",
         solver="liblinear",
     )
-    predict_proba = "decision"
 
 elif model_name == "dummy":
     creator.add("dummy")
@@ -886,12 +881,47 @@ joblib.dump(model, out_path / f"{filename_suffix}_model.joblib")
 
 logger.info("Predicting fold probabilities")
 try:
-    if predict_proba == "proba":
-        fold_predictions = inspector.folds.predict_proba()
-    elif predict_proba == "decision":
-        fold_predictions = inspector.folds.decision_function()
-    else:
-        fold_predictions = inspector.folds.predict()
+    # Collect every available output per sample: predicted label, class
+    # probabilities and decision scores. Columns are prefixed by kind
+    # (e.g. "predict_repeat0_p0", "proba_repeat0_p1", "decision_repeat0_p0").
+    fold_outputs = {
+        "predict": "predict",
+        "proba": "predict_proba",
+        "decision": "decision_function",
+    }
+    fold_predictions = []
+    for prefix, func in fold_outputs.items():
+        if not hasattr(inspector.folds, func):
+            continue
+        t_df = getattr(inspector.folds, func)()
+        target = t_df.pop("target")
+        t_df.columns = [f"{prefix}_{c}" for c in t_df.columns]
+        fold_predictions.append(t_df)
+    fold_predictions = pd.concat(fold_predictions, axis=1)
+    fold_predictions["target"] = target
+
+    # The inspector indexes samples by their row position in df (which has a
+    # RangeIndex after reset_index), so metadata can be attached by position.
+    meta_cols = [
+        c
+        for c in [
+            "subject",
+            "timepoint",
+            "n_trial",
+            "seconds_to_probe",
+            groups_col,
+        ]
+        if c is not None and c in df.columns
+    ]
+    meta = df.iloc[fold_predictions.index][meta_cols]
+    meta.index = fold_predictions.index
+    # Recompute each sample's test fold (same seeded splitter as julearn)
+    meta["fold"] = -1
+    for i_fold, (_, test_idx) in enumerate(
+        cv_splitter.split(df, df["response_prompt"], groups=df[groups_col])
+    ):
+        meta.iloc[test_idx, meta.columns.get_loc("fold")] = i_fold
+    fold_predictions = meta.join(fold_predictions)
     fold_predictions.to_csv(
         out_path / f"{filename_suffix}_fold_predictions.csv", sep=";"
     )
